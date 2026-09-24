@@ -46,13 +46,20 @@
                 "{date}",
                 "the {date}",
                 "on {date}",
-                "expires {date}",
-                "expiry is {date}"
+                "expires {date}"
               ]
             },
             {
               "name": "vehicle",
-              "type": "VEHICLE_NAME"
+              "type": "VEHICLE_NAME",
+              "samples": [
+                "{vehicle}",
+                "on {vehicle}",
+                "for {vehicle}",
+                "Sarah's",
+                "Shane's",
+                "Cass's"
+              ]
             }
           ],
           "samples": [
@@ -61,15 +68,16 @@
             "set the rego to {date}",
             "set rego to {date}",
             "set the registration expiry to {date}",
-            "set registration expiry to {date}",
-            "the rego expires on {date}",
-            "rego expires {date}",
-            "rego is due on {date}",
             "update the rego date to {date}",
             "change the rego expiry to {date}",
+            "set the rego on {vehicle} to {date}",
+            "set the rego expiry on {vehicle} to {date}",
+            "set rego on {vehicle} to {date}",
+            "set the rego for {vehicle} to {date}",
             "set the rego expiry for {vehicle} to {date}",
-            "set rego for {vehicle} to {date}",
-            "my rego expires on {date}"
+            "{vehicle} rego expires on {date}",
+            "{vehicle} rego is due on {date}",
+            "the rego on {vehicle} expires on {date}"
           ]
         },
         {
@@ -88,7 +96,15 @@
             },
             {
               "name": "vehicle",
-              "type": "VEHICLE_NAME"
+              "type": "VEHICLE_NAME",
+              "samples": [
+                "{vehicle}",
+                "on {vehicle}",
+                "for {vehicle}",
+                "Sarah's",
+                "Shane's",
+                "Cass's"
+              ]
             }
           ],
           "samples": [
@@ -101,15 +117,18 @@
             "set the warrant to {date}",
             "set the warrant of fitness to {date}",
             "set warrant expiry to {date}",
-            "the WOF is due on {date}",
-            "WOF expires {date}",
-            "WOF is due {date}",
             "update the WOF date to {date}",
             "change the WOF expiry to {date}",
+            "set the WOF on {vehicle} to {date}",
+            "set the WOF due date on {vehicle} to {date}",
+            "set WOF on {vehicle} to {date}",
             "set the WOF for {vehicle} to {date}",
-            "set WOF for {vehicle} to {date}",
-            "my WOF expires on {date}",
-            "my warrant is due on {date}"
+            "set the WOF expiry for {vehicle} to {date}",
+            "{vehicle} WOF is due on {date}",
+            "{vehicle} WOF is due {date}",
+            "{vehicle} WOF expires on {date}",
+            "{vehicle} warrant is due on {date}",
+            "the WOF on {vehicle} is due on {date}"
           ]
         },
         {
@@ -137,7 +156,15 @@
             },
             {
               "name": "vehicle",
-              "type": "VEHICLE_NAME"
+              "type": "VEHICLE_NAME",
+              "samples": [
+                "{vehicle}",
+                "on {vehicle}",
+                "for {vehicle}",
+                "Sarah's",
+                "Shane's",
+                "Cass's"
+              ]
             }
           ],
           "samples": [
@@ -148,16 +175,21 @@
             "record a service on {date} at {odometer} kilometres",
             "record a service today at {odometer} kilometres",
             "log a service on {date}",
-            "log a service at {odometer} K",
             "I had a service on {date}",
             "I just had a service",
-            "the car was serviced on {date}",
             "record a service on {date} next service {nextDate}",
             "record a service on {date} next service in {interval}",
             "record a service today next service every {interval}",
             "record a service at {odometer} kilometres next service at {nextOdometer} kilometres",
+            "record a service on {vehicle}",
+            "record a service on {vehicle} today",
+            "record a service on {vehicle} on {date}",
+            "record a service on {vehicle} today at {odometer} kilometres",
+            "record a service on {vehicle} on {date} at {odometer} kilometres",
             "record a service for {vehicle} on {date}",
-            "serviced the car on {date}"
+            "record a service on {vehicle} today next service every {interval}",
+            "{vehicle} was serviced on {date}",
+            "{vehicle} was serviced today at {odometer} kilometres"
           ]
         },
         {
@@ -177,7 +209,12 @@
             },
             {
               "name": "vehicle",
-              "type": "VEHICLE_NAME"
+              "type": "VEHICLE_NAME",
+              "samples": [
+                "{vehicle}",
+                "on {vehicle}",
+                "for {vehicle}"
+              ]
             }
           ],
           "samples": [
@@ -185,15 +222,16 @@
             "set next service to {date}",
             "set the next service date to {date}",
             "next service is due on {date}",
-            "next service on {date}",
             "set next service every {interval}",
             "set the next service every {interval}",
             "next service in {interval}",
-            "service every {interval}",
             "set next service at {nextOdometer} kilometres",
-            "next service at {nextOdometer} kilometres",
+            "set the next service on {vehicle} to {date}",
+            "set next service on {vehicle} to {date}",
             "set next service for {vehicle} to {date}",
-            "the car is due for a service on {date}"
+            "set next service on {vehicle} every {interval}",
+            "{vehicle} next service is due on {date}",
+            "{vehicle} is due for a service on {date}"
           ]
         },
         {
@@ -211,7 +249,8 @@
             "what's the status",
             "what is the status",
             "status of {vehicle}",
-            "status for {vehicle}"
+            "status for {vehicle}",
+            "{vehicle} status"
           ]
         },
         {
@@ -235,7 +274,9 @@
             "summarize",
             "summary",
             "give me a summary",
-            "what's coming up for {vehicle}"
+            "what's coming up for {vehicle}",
+            "what's due for {vehicle}",
+            "what's coming up on {vehicle}"
           ]
         },
         {
@@ -257,8 +298,12 @@
             "what's the rego date",
             "what is the rego expiry",
             "rego status",
+            "when is the rego due on {vehicle}",
+            "when's the rego due on {vehicle}",
             "when is rego due for {vehicle}",
-            "when's the rego due for {vehicle}"
+            "when's the rego due for {vehicle}",
+            "when does {vehicle} rego expire",
+            "{vehicle} rego status"
           ]
         },
         {
@@ -282,8 +327,12 @@
             "what's the WOF date",
             "what is the WOF expiry",
             "WOF status",
+            "when is the WOF due on {vehicle}",
+            "when's the WOF due on {vehicle}",
             "when is WOF due for {vehicle}",
-            "when's the WOF due for {vehicle}"
+            "when's the WOF due for {vehicle}",
+            "when does {vehicle} WOF expire",
+            "{vehicle} WOF status"
           ]
         },
         {
@@ -297,7 +346,6 @@
           "samples": [
             "when is the car due for a service",
             "when's the car due for a service",
-            "when is my car due for a service",
             "when is the next service",
             "when's the next service",
             "when is service due",
@@ -305,7 +353,11 @@
             "when is the service due",
             "service status",
             "what's the next service date",
-            "when is {vehicle} due for a service"
+            "when is {vehicle} due for a service",
+            "when's {vehicle} due for a service",
+            "when is the next service on {vehicle}",
+            "when's the next service for {vehicle}",
+            "{vehicle} service status"
           ]
         },
         {
@@ -323,18 +375,29 @@
             },
             {
               "name": "vehicle",
-              "type": "VEHICLE_NAME"
+              "type": "VEHICLE_NAME",
+              "samples": [
+                "{vehicle}",
+                "on {vehicle}",
+                "for {vehicle}",
+                "Sarah's",
+                "Shane's",
+                "Cass's"
+              ]
             }
           ],
           "samples": [
             "clear the {itemType}",
             "clear {itemType}",
             "clear the {itemType} date",
-            "clear {itemType} for {vehicle}",
-            "clear the {itemType} for {vehicle}",
             "reset the {itemType}",
             "remove the {itemType} date",
-            "delete the {itemType} date"
+            "clear the {itemType} on {vehicle}",
+            "clear {itemType} on {vehicle}",
+            "clear the {itemType} for {vehicle}",
+            "clear {itemType} for {vehicle}",
+            "clear the {itemType} date on {vehicle}",
+            "reset the {itemType} on {vehicle}"
           ]
         },
         {
@@ -346,14 +409,22 @@
             },
             {
               "name": "vehicle",
-              "type": "VEHICLE_NAME"
+              "type": "VEHICLE_NAME",
+              "samples": [
+                "{vehicle}",
+                "on {vehicle}",
+                "for {vehicle}"
+              ]
             }
           ],
           "samples": [
             "delete the {itemType}",
             "delete {itemType}",
             "delete all dates",
-            "wipe the {itemType}"
+            "wipe the {itemType}",
+            "delete the {itemType} on {vehicle}",
+            "delete {itemType} on {vehicle}",
+            "wipe the {itemType} on {vehicle}"
           ]
         }
       ],
@@ -462,88 +533,44 @@
           "name": "VEHICLE_NAME",
           "values": [
             {
+              "id": "sarah",
               "name": {
-                "value": "the car",
+                "value": "Sarah's car",
                 "synonyms": [
-                  "car",
-                  "my car",
-                  "the vehicle"
+                  "sarah's",
+                  "sarah",
+                  "sarahs car",
+                  "sarah car",
+                  "Sarah's"
                 ]
               }
             },
             {
+              "id": "shane",
               "name": {
-                "value": "the ute",
+                "value": "Shane's car",
                 "synonyms": [
-                  "ute",
-                  "my ute"
+                  "shane's",
+                  "shane",
+                  "shanes car",
+                  "shane car",
+                  "Shane's"
                 ]
               }
             },
             {
+              "id": "cass",
               "name": {
-                "value": "the van",
+                "value": "Cass's car",
                 "synonyms": [
-                  "van",
-                  "my van"
-                ]
-              }
-            },
-            {
-              "name": {
-                "value": "the truck",
-                "synonyms": [
-                  "truck",
-                  "my truck"
-                ]
-              }
-            },
-            {
-              "name": {
-                "value": "the hatch",
-                "synonyms": [
-                  "hatch",
-                  "hatchback"
-                ]
-              }
-            },
-            {
-              "name": {
-                "value": "the SUV",
-                "synonyms": [
-                  "SUV",
-                  "suv"
-                ]
-              }
-            },
-            {
-              "name": {
-                "value": "ABC123",
-                "synonyms": [
-                  "A B C one two three"
-                ]
-              }
-            },
-            {
-              "name": {
-                "value": "XYZ987",
-                "synonyms": []
-              }
-            },
-            {
-              "name": {
-                "value": "family car",
-                "synonyms": [
-                  "the family car"
-                ]
-              }
-            },
-            {
-              "name": {
-                "value": "work car",
-                "synonyms": [
-                  "the work car",
-                  "company car"
+                  "cass's",
+                  "cass",
+                  "cassie",
+                  "cassie's",
+                  "cass car",
+                  "casss car",
+                  "Cass's",
+                  "cassie's car"
                 ]
               }
             }
@@ -566,6 +593,15 @@
               "prompts": {
                 "elicitation": "Elicit.Slot.SetRego.date"
               }
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Vehicle"
+              }
             }
           ]
         },
@@ -582,6 +618,47 @@
               "prompts": {
                 "elicitation": "Elicit.Slot.SetWof.date"
               }
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Vehicle"
+              }
+            }
+          ]
+        },
+        {
+          "name": "RecordServiceIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Vehicle"
+              }
+            }
+          ]
+        },
+        {
+          "name": "SetNextServiceIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Vehicle"
+              }
             }
           ]
         },
@@ -597,6 +674,31 @@
               "elicitationRequired": true,
               "prompts": {
                 "elicitation": "Elicit.Slot.Clear.itemType"
+              }
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Vehicle"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DeleteIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Vehicle"
               }
             }
           ]
@@ -637,6 +739,19 @@
           {
             "type": "PlainText",
             "value": "What should I clear \u2014 rego, WOF, service, or all?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.Vehicle",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Which car, Sarah's, Shane's or Cass's?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Is that for Sarah's car, Shane's car, or Cass's car?"
           }
         ]
       }

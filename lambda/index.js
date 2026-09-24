@@ -8,14 +8,11 @@ const apl = require('./aplDocument');
 const REMINDER_PERMISSION = 'alexa::alerts:reminders:skill:readwrite';
 
 const HELP_TEXT =
-  'I track your car\'s rego, WOF, and servicing. ' +
-  'Try: set the rego expiry to the fifteenth of March twenty twenty seven. ' +
-  'Or: set the WOF due date to June. ' +
-  'Or: record a service today at forty five thousand kilometres, next service in six months. ' +
-  'Ask: when\'s the rego due, when\'s my WOF due, when is the car due for a service, or what\'s coming up. ' +
-  'You can also clear the rego, WOF, or service dates.';
-
-/* ---------- persistence helpers ---------- */
+  'I track rego, WOF, and servicing for Sarah\'s car, Shane\'s car, and Cass\'s car. ' +
+  'Try: set the WOF on Sarah\'s car to the first of June. ' +
+  'Or: record a service on Shane\'s car today at forty five thousand kilometres. ' +
+  'Ask: what\'s coming up, when\'s the WOF due, or when\'s the rego due on Cass\'s car. ' +
+  'You can clear the rego, WOF, or service on a named car.';
 
 async function loadAttrs(handlerInput) {
   const attrs = (await handlerInput.attributesManager.getPersistentAttributes()) || {};
@@ -32,14 +29,29 @@ function getSlots(handlerInput) {
   return (req.intent && req.intent.slots) || {};
 }
 
-async function withAplIfSupported(handlerInput, speech, reprompt, items, vehicleLabel, timezone) {
+async function withAplIfSupported(handlerInput, speech, reprompt, attrs, timezone) {
   const rb = handlerInput.responseBuilder.speak(speech);
   if (reprompt) rb.reprompt(reprompt);
   if (util.supportsApl(handlerInput)) {
-    const today = util.todayIso(timezone);
-    rb.addDirective(apl.buildAplDirective(items || [], vehicleLabel, today));
+    rb.addDirective(apl.buildAplDirective(attrs, timezone));
   }
   return rb.getResponse();
+}
+
+/** Elicit vehicle slot; keeps other filled slots via updatedIntent. */
+function elicitVehicle(handlerInput, speech) {
+  const intent = handlerInput.requestEnvelope.request.intent;
+  return handlerInput.responseBuilder
+    .speak(speech || util.ELICIT_VEHICLE_SPEECH)
+    .reprompt(util.ELICIT_VEHICLE_SPEECH)
+    .addElicitSlotDirective('vehicle', intent)
+    .getResponse();
+}
+
+function requireVehicle(handlerInput, attrs, slots) {
+  const resolved = util.resolveVehicle(attrs, slots);
+  if (!resolved.key) return null;
+  return resolved;
 }
 
 /* ---------- Launch ---------- */
@@ -53,10 +65,10 @@ const LaunchRequestHandler = {
     const attrs = await loadAttrs(handlerInput);
     const items = util.collectDueItems(attrs, timezone);
     const speech = items.length
-      ? util.summariseItems(items, 'Welcome back. Here\'s what\'s due next.')
-      : 'Welcome to Car Due Dates. Nothing is set yet. You can say, set the rego expiry to the fifteenth of March, or set the WOF due date to June.';
-    const reprompt = 'You can set a rego or WOF date, record a service, or ask what\'s coming up.';
-    return withAplIfSupported(handlerInput, speech, reprompt, items, attrs.defaultVehicle, timezone);
+      ? util.summariseItems(items, 'Welcome back. Here\'s what\'s due next across all three cars.')
+      : 'Welcome to Car Due Dates. Nothing is set yet for Sarah\'s, Shane\'s, or Cass\'s car. Say, for example, set the WOF on Sarah\'s car to June.';
+    const reprompt = 'You can set a date on a named car, or ask what\'s coming up.';
+    return withAplIfSupported(handlerInput, speech, reprompt, attrs, timezone);
   },
 };
 
@@ -70,20 +82,25 @@ const SetRegoIntentHandler = {
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
     const slots = getSlots(handlerInput);
+    const attrs = await loadAttrs(handlerInput);
+
+    const resolved = requireVehicle(handlerInput, attrs, slots);
+    if (!resolved) return elicitVehicle(handlerInput);
+
     const dateRaw = util.slotString(slots, 'date');
     const parsed = util.parseAlexaDate(dateRaw, timezone);
     if (!parsed) {
       return handlerInput.responseBuilder
-        .speak('I didn\'t catch the rego expiry date. When does the rego expire? For example, the fifteenth of March twenty twenty seven.')
+        .speak('When does the rego expire? For example, the fifteenth of March twenty twenty seven.')
         .reprompt('When does the rego expire?')
-        .addElicitSlotDirective('date')
+        .addElicitSlotDirective('date', handlerInput.requestEnvelope.request.intent)
         .getResponse();
     }
 
-    const attrs = await loadAttrs(handlerInput);
-    const { key, vehicle } = util.resolveVehicle(attrs, slots);
+    const { key, vehicle } = resolved;
     vehicle.regoExpiry = parsed;
     attrs.vehicles[key] = vehicle;
+    const label = util.displayName(key);
     attrs.pendingReminder = {
       type: 'rego',
       date: parsed,
@@ -95,10 +112,15 @@ const SetRegoIntentHandler = {
 
     const days = util.daysUntil(parsed, timezone);
     const speech =
-      `Got it. I've set the rego for ${vehicle.nickname || key} to expire on ${util.speakDate(parsed)}. ` +
+      `Got it. I've set the rego for ${label} to expire on ${util.speakDate(parsed)}. ` +
       `${util.speakDaysRemaining(days)}. Would you like a reminder two weeks before?`;
-    const items = util.collectDueItems(attrs, timezone, key);
-    return withAplIfSupported(handlerInput, speech, 'Would you like a reminder two weeks before the rego expires?', items, key, timezone);
+    return withAplIfSupported(
+      handlerInput,
+      speech,
+      'Would you like a reminder two weeks before the rego expires?',
+      attrs,
+      timezone
+    );
   },
 };
 
@@ -112,20 +134,25 @@ const SetWofIntentHandler = {
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
     const slots = getSlots(handlerInput);
+    const attrs = await loadAttrs(handlerInput);
+
+    const resolved = requireVehicle(handlerInput, attrs, slots);
+    if (!resolved) return elicitVehicle(handlerInput);
+
     const dateRaw = util.slotString(slots, 'date');
     const parsed = util.parseAlexaDate(dateRaw, timezone);
     if (!parsed) {
       return handlerInput.responseBuilder
-        .speak('I didn\'t catch the WOF expiry date. When is the warrant due? For example, June twenty twenty seven, or the first of June.')
+        .speak('When is the WOF due? For example, June twenty twenty seven, or the first of June.')
         .reprompt('When is the WOF due?')
-        .addElicitSlotDirective('date')
+        .addElicitSlotDirective('date', handlerInput.requestEnvelope.request.intent)
         .getResponse();
     }
 
-    const attrs = await loadAttrs(handlerInput);
-    const { key, vehicle } = util.resolveVehicle(attrs, slots);
+    const { key, vehicle } = resolved;
     vehicle.wofExpiry = parsed;
     attrs.vehicles[key] = vehicle;
+    const label = util.displayName(key);
     attrs.pendingReminder = {
       type: 'wof',
       date: parsed,
@@ -137,10 +164,15 @@ const SetWofIntentHandler = {
 
     const days = util.daysUntil(parsed, timezone);
     const speech =
-      `Confirmed. The WOF for ${vehicle.nickname || key} is due on ${util.speakDate(parsed)}. ` +
+      `Confirmed. ${label} WOF is due on ${util.speakDate(parsed)}. ` +
       `${util.speakDaysRemaining(days)}. Want a reminder two weeks before?`;
-    const items = util.collectDueItems(attrs, timezone, key);
-    return withAplIfSupported(handlerInput, speech, 'Would you like a WOF reminder two weeks before?', items, key, timezone);
+    return withAplIfSupported(
+      handlerInput,
+      speech,
+      'Would you like a WOF reminder two weeks before?',
+      attrs,
+      timezone
+    );
   },
 };
 
@@ -154,20 +186,22 @@ const RecordServiceIntentHandler = {
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
     const slots = getSlots(handlerInput);
+    const attrs = await loadAttrs(handlerInput);
+
+    const resolved = requireVehicle(handlerInput, attrs, slots);
+    if (!resolved) return elicitVehicle(handlerInput);
+
     const dateRaw = util.slotString(slots, 'date');
-    let serviceDate = util.parseAlexaDate(dateRaw, timezone) || util.todayIso(timezone);
+    const serviceDate = util.parseAlexaDate(dateRaw, timezone) || util.todayIso(timezone);
     const odo = util.slotNumber(slots, 'odometer');
     const nextDateRaw = util.slotString(slots, 'nextDate');
     const intervalRaw = util.slotString(slots, 'interval');
     const nextKm = util.slotNumber(slots, 'nextOdometer');
 
-    const attrs = await loadAttrs(handlerInput);
-    const { key, vehicle } = util.resolveVehicle(attrs, slots);
+    const { key, vehicle } = resolved;
+    const label = util.displayName(key);
 
-    vehicle.lastService = {
-      date: serviceDate,
-      odometerKm: odo,
-    };
+    vehicle.lastService = { date: serviceDate, odometerKm: odo };
 
     let nextServiceDate = util.parseAlexaDate(nextDateRaw, timezone);
     const intervalMonths = util.parseIntervalMonths(intervalRaw);
@@ -185,8 +219,7 @@ const RecordServiceIntentHandler = {
 
     attrs.vehicles[key] = vehicle;
 
-    let speech =
-      `Recorded a service for ${vehicle.nickname || key} on ${util.speakDate(serviceDate)}`;
+    let speech = `Recorded a service for ${label} on ${util.speakDate(serviceDate)}`;
     if (odo !== null) speech += ` at ${odo} kilometres`;
     speech += '.';
 
@@ -202,8 +235,13 @@ const RecordServiceIntentHandler = {
       };
       speech += ' Shall I remind you one week before?';
       await saveAttrs(handlerInput, attrs);
-      const items = util.collectDueItems(attrs, timezone, key);
-      return withAplIfSupported(handlerInput, speech, 'Would you like a service reminder one week before?', items, key, timezone);
+      return withAplIfSupported(
+        handlerInput,
+        speech,
+        'Would you like a service reminder one week before?',
+        attrs,
+        timezone
+      );
     }
 
     if (vehicle.nextService && vehicle.nextService.odometerKm) {
@@ -213,12 +251,11 @@ const RecordServiceIntentHandler = {
     }
 
     await saveAttrs(handlerInput, attrs);
-    const items = util.collectDueItems(attrs, timezone, key);
-    return withAplIfSupported(handlerInput, speech, 'Anything else?', items, key, timezone);
+    return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
 
-/* ---------- Set Next Service only ---------- */
+/* ---------- Set Next Service ---------- */
 
 const SetNextServiceIntentHandler = {
   canHandle(handlerInput) {
@@ -228,14 +265,19 @@ const SetNextServiceIntentHandler = {
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
     const slots = getSlots(handlerInput);
+    const attrs = await loadAttrs(handlerInput);
+
+    const resolved = requireVehicle(handlerInput, attrs, slots);
+    if (!resolved) return elicitVehicle(handlerInput);
+
     const dateRaw = util.slotString(slots, 'date');
     const intervalRaw = util.slotString(slots, 'interval');
     const nextKm = util.slotNumber(slots, 'nextOdometer');
     const intervalMonths = util.parseIntervalMonths(intervalRaw);
 
     let nextDate = util.parseAlexaDate(dateRaw, timezone);
-    const attrs = await loadAttrs(handlerInput);
-    const { key, vehicle } = util.resolveVehicle(attrs, slots);
+    const { key, vehicle } = resolved;
+    const label = util.displayName(key);
 
     if (!nextDate && intervalMonths && vehicle.lastService && vehicle.lastService.date) {
       nextDate = util.addMonths(vehicle.lastService.date, intervalMonths);
@@ -258,7 +300,7 @@ const SetNextServiceIntentHandler = {
     };
     attrs.vehicles[key] = vehicle;
 
-    let speech = `Okay. Next service for ${vehicle.nickname || key}`;
+    let speech = `Okay. Next service for ${label}`;
     if (vehicle.nextService.date) {
       speech += ` is due on ${util.speakDate(vehicle.nextService.date)}`;
     }
@@ -277,17 +319,15 @@ const SetNextServiceIntentHandler = {
       };
       speech += ' Want a reminder one week before?';
       await saveAttrs(handlerInput, attrs);
-      const items = util.collectDueItems(attrs, timezone, key);
-      return withAplIfSupported(handlerInput, speech, 'Would you like a reminder?', items, key, timezone);
+      return withAplIfSupported(handlerInput, speech, 'Would you like a reminder?', attrs, timezone);
     }
 
     await saveAttrs(handlerInput, attrs);
-    const items = util.collectDueItems(attrs, timezone, key);
-    return withAplIfSupported(handlerInput, speech, 'Anything else?', items, key, timezone);
+    return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
 
-/* ---------- Status intents ---------- */
+/* ---------- Status ---------- */
 
 const StatusIntentHandler = {
   canHandle(handlerInput) {
@@ -301,43 +341,41 @@ const StatusIntentHandler = {
     const attrs = await loadAttrs(handlerInput);
     const slots = getSlots(handlerInput);
     const intent = Alexa.getIntentName(handlerInput.requestEnvelope);
-    const { key, vehicle } = util.resolveVehicle(attrs, slots);
-    let items = util.collectDueItems(attrs, timezone, key);
+    const vehicleId = util.resolveVehicleId(slots);
 
-    if (intent === 'RegoStatusIntent') {
-      items = items.filter((i) => i.type === 'rego');
-      if (!items.length) {
-        return handlerInput.responseBuilder
-          .speak(`I don't have a rego date for ${vehicle.nickname || key} yet. Say set the rego expiry, then a date.`)
-          .reprompt('When does the rego expire?')
-          .getResponse();
+    let typeFilter = null;
+    if (intent === 'RegoStatusIntent') typeFilter = 'rego';
+    else if (intent === 'WofStatusIntent') typeFilter = 'wof';
+    else if (intent === 'ServiceStatusIntent') typeFilter = 'service';
+
+    const items = util.collectDueItems(attrs, timezone, vehicleId || null, typeFilter);
+
+    if (!items.length) {
+      let speech;
+      if (typeFilter === 'rego') {
+        speech = vehicleId
+          ? `I don't have a rego date for ${util.displayName(vehicleId)} yet.`
+          : 'I don\'t have any rego dates set yet for Sarah\'s, Shane\'s, or Cass\'s car.';
+      } else if (typeFilter === 'wof') {
+        speech = vehicleId
+          ? `I don't have a WOF date for ${util.displayName(vehicleId)} yet.`
+          : 'I don\'t have any WOF dates set yet for Sarah\'s, Shane\'s, or Cass\'s car.';
+      } else if (typeFilter === 'service') {
+        speech = vehicleId
+          ? `I don't have a next service date for ${util.displayName(vehicleId)} yet.`
+          : 'I don\'t have any next service dates set yet.';
+      } else {
+        speech = 'Nothing is set yet. Say, for example, set the WOF on Sarah\'s car to June.';
       }
-    } else if (intent === 'WofStatusIntent') {
-      items = items.filter((i) => i.type === 'wof');
-      if (!items.length) {
-        return handlerInput.responseBuilder
-          .speak(`I don't have a WOF date for ${vehicle.nickname || key} yet. Say set the WOF due date, then a date.`)
-          .reprompt('When is the WOF due?')
-          .getResponse();
-      }
-    } else if (intent === 'ServiceStatusIntent') {
-      items = items.filter((i) => i.type === 'service');
-      if (!items.length) {
-        return handlerInput.responseBuilder
-          .speak(`I don't have a next service date for ${vehicle.nickname || key} yet. Say record a service, or set the next service date.`)
-          .reprompt('When is the next service due?')
-          .getResponse();
-      }
-    } else if (intent === 'WhatsComingUpIntent' || intent === 'StatusIntent') {
-      // all vehicles if no specific vehicle slot
-      const nick = util.slotString(slots, 'vehicle') || util.slotString(slots, 'nickname') || util.slotString(slots, 'plate');
-      if (!nick) {
-        items = util.collectDueItems(attrs, timezone);
-      }
+      return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
     }
 
-    const speech = util.summariseItems(items, intent === 'WhatsComingUpIntent' ? 'Here\'s what\'s coming up.' : '');
-    return withAplIfSupported(handlerInput, speech, 'Anything else?', items, key, timezone);
+    const intro = intent === 'WhatsComingUpIntent' || intent === 'StatusIntent'
+      ? (vehicleId ? `Here's the status for ${util.displayName(vehicleId)}.` : 'Here\'s what\'s coming up.')
+      : (vehicleId ? '' : 'Across all three cars:');
+
+    const speech = util.summariseItems(items, intro);
+    return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
 
@@ -353,36 +391,40 @@ const ClearIntentHandler = {
     const timezone = await util.getTimezone(handlerInput);
     const attrs = await loadAttrs(handlerInput);
     const slots = getSlots(handlerInput);
-    const { key, vehicle } = util.resolveVehicle(attrs, slots);
+
+    const resolved = requireVehicle(handlerInput, attrs, slots);
+    if (!resolved) return elicitVehicle(handlerInput);
+
+    const { key, vehicle } = resolved;
+    const label = util.displayName(key);
     const itemType = (util.slotString(slots, 'itemType') || '').toLowerCase();
 
     let speech;
     if (/rego|registration/.test(itemType)) {
       vehicle.regoExpiry = null;
-      speech = `Cleared the rego date for ${vehicle.nickname || key}.`;
+      speech = `Cleared the rego date for ${label}.`;
     } else if (/wof|warrant/.test(itemType)) {
       vehicle.wofExpiry = null;
-      speech = `Cleared the WOF date for ${vehicle.nickname || key}.`;
+      speech = `Cleared the WOF date for ${label}.`;
     } else if (/service/.test(itemType)) {
       vehicle.nextService = null;
       vehicle.lastService = null;
-      speech = `Cleared the service dates for ${vehicle.nickname || key}.`;
+      speech = `Cleared the service dates for ${label}.`;
     } else if (/all|everything/.test(itemType)) {
-      attrs.vehicles[key] = util.emptyVehicle(vehicle.nickname || key);
-      speech = `Cleared all dates for ${vehicle.nickname || key}.`;
+      attrs.vehicles[key] = util.emptyVehicle(key);
+      speech = `Cleared all dates for ${label}.`;
     } else {
       return handlerInput.responseBuilder
         .speak('What should I clear — rego, WOF, service, or all?')
         .reprompt('Rego, WOF, service, or all?')
-        .addElicitSlotDirective('itemType')
+        .addElicitSlotDirective('itemType', handlerInput.requestEnvelope.request.intent)
         .getResponse();
     }
 
-    attrs.vehicles[key] = vehicle;
+    attrs.vehicles[key] = /all|everything/.test(itemType) ? attrs.vehicles[key] : vehicle;
     attrs.pendingReminder = null;
     await saveAttrs(handlerInput, attrs);
-    const items = util.collectDueItems(attrs, timezone, key);
-    return withAplIfSupported(handlerInput, speech, 'Anything else?', items, key, timezone);
+    return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
 
@@ -398,12 +440,11 @@ const YesIntentHandler = {
     const pending = attrs.pendingReminder;
     if (!pending || !pending.prompt) {
       return handlerInput.responseBuilder
-        .speak('Okay. You can ask what\'s coming up, or set a date.')
+        .speak('Okay. You can ask what\'s coming up, or set a date on a named car.')
         .reprompt('What would you like to do?')
         .getResponse();
     }
 
-    // Check permission
     if (!util.hasRemindersPermission(handlerInput)) {
       attrs.pendingReminder = { ...pending, awaitingPermission: true };
       await saveAttrs(handlerInput, attrs);
@@ -416,10 +457,7 @@ const YesIntentHandler = {
             '@type': 'AskForPermissionsConsentRequest',
             '@version': '2',
             permissionScopes: [
-              {
-                permissionScope: REMINDER_PERMISSION,
-                consentLevel: 'ACCOUNT',
-              },
+              { permissionScope: REMINDER_PERMISSION, consentLevel: 'ACCOUNT' },
             ],
           },
           token: 'remindersFromYes',
@@ -446,15 +484,14 @@ const NoIntentHandler = {
         .reprompt('Anything else?')
         .getResponse();
     }
-    return handlerInput.responseBuilder
-      .speak('Okay.')
-      .getResponse();
+    return handlerInput.responseBuilder.speak('Okay.').getResponse();
   },
 };
 
 async function createPendingReminder(handlerInput, attrs, pending) {
   const timezone = await util.getTimezone(handlerInput);
   const trigger = util.reminderTriggerIso(pending.date, pending.daysBefore || 14, timezone);
+  const label = util.displayName(pending.vehicleKey);
   if (!trigger) {
     attrs.pendingReminder = null;
     await saveAttrs(handlerInput, attrs);
@@ -465,11 +502,10 @@ async function createPendingReminder(handlerInput, attrs, pending) {
   }
 
   const typeLabel = pending.type === 'wof' ? 'WOF' : pending.type === 'rego' ? 'rego' : 'service';
-  const text = `Your car ${typeLabel} is due on ${util.speakDate(pending.date)}.`;
+  const text = `${label} ${typeLabel} is due on ${util.speakDate(pending.date)}.`;
 
   try {
     const client = handlerInput.serviceClientFactory.getReminderManagementServiceClient();
-    // Reminders API: scheduledTime is local wall time without offset when timeZoneId is set
     const scheduledLocal = String(trigger).replace(/([+-]\d{2}:\d{2}|Z)$/, '');
     await client.createReminder({
       requestTime: new Date().toISOString().split('.')[0],
@@ -480,22 +516,15 @@ async function createPendingReminder(handlerInput, attrs, pending) {
       },
       alertInfo: {
         spokenInfo: {
-          content: [
-            {
-              locale: 'en-AU',
-              text,
-            },
-          ],
+          content: [{ locale: 'en-AU', text }],
         },
       },
-      pushNotification: {
-        status: 'ENABLED',
-      },
+      pushNotification: { status: 'ENABLED' },
     });
     attrs.pendingReminder = null;
     await saveAttrs(handlerInput, attrs);
     return handlerInput.responseBuilder
-      .speak(`Done. I'll remind you about the ${typeLabel} at nine a.m., ${pending.daysBefore || 14} days before.`)
+      .speak(`Done. I'll remind you about ${label} ${typeLabel} at nine a.m., ${pending.daysBefore || 14} days before.`)
       .reprompt('Anything else?')
       .getResponse();
   } catch (err) {
@@ -512,10 +541,7 @@ async function createPendingReminder(handlerInput, attrs, pending) {
             '@type': 'AskForPermissionsConsentRequest',
             '@version': '2',
             permissionScopes: [
-              {
-                permissionScope: REMINDER_PERMISSION,
-                consentLevel: 'ACCOUNT',
-              },
+              { permissionScope: REMINDER_PERMISSION, consentLevel: 'ACCOUNT' },
             ],
           },
           token: 'remindersAfterError',
@@ -525,13 +551,11 @@ async function createPendingReminder(handlerInput, attrs, pending) {
     attrs.pendingReminder = null;
     await saveAttrs(handlerInput, attrs);
     return handlerInput.responseBuilder
-      .speak('I couldn\'t create that reminder right now, but your date is saved. You can try again later from the Alexa app permissions.')
+      .speak('I couldn\'t create that reminder right now, but your date is saved.')
       .reprompt('Anything else?')
       .getResponse();
   }
 }
-
-/* ---------- Connections.Response (permission result) ---------- */
 
 const ConnectionsResponseHandler = {
   canHandle(handlerInput) {
@@ -546,24 +570,20 @@ const ConnectionsResponseHandler = {
     const status = (scopes[0] && scopes[0].status) || payload.status || '';
 
     if (String(status).toUpperCase() === 'ACCEPTED' || String(status).toUpperCase() === 'GRANTED') {
-      if (pending) {
-        return createPendingReminder(handlerInput, attrs, pending);
-      }
+      if (pending) return createPendingReminder(handlerInput, attrs, pending);
       return handlerInput.responseBuilder
-        .speak('Thanks. Reminders permission is on. Set a date and I can offer a reminder.')
+        .speak('Thanks. Reminders permission is on.')
         .getResponse();
     }
 
     attrs.pendingReminder = null;
     await saveAttrs(handlerInput, attrs);
     return handlerInput.responseBuilder
-      .speak('No problem — I won\'t set reminders. Your dates are still saved. You can turn on Reminders for this skill later in the Alexa app under Skills permissions.')
+      .speak('No problem — I won\'t set reminders. Your dates are still saved.')
       .reprompt('Anything else?')
       .getResponse();
   },
 };
-
-/* ---------- Built-ins ---------- */
 
 const HelpIntentHandler = {
   canHandle(handlerInput) {
@@ -600,7 +620,7 @@ const FallbackIntentHandler = {
   handle(handlerInput) {
     return handlerInput.responseBuilder
       .speak('Sorry, I didn\'t get that. ' + HELP_TEXT)
-      .reprompt('Try asking when the WOF is due, or set a rego date.')
+      .reprompt('Try asking what\'s coming up, or set a WOF on a named car.')
       .getResponse();
   },
 };
@@ -628,16 +648,12 @@ const ErrorHandler = {
   },
 };
 
-/* ---------- Skill builder ---------- */
-
 function buildPersistenceAdapter() {
-  // Allow tests / local runs to inject an in-memory adapter
   if (process.env.USE_MEMORY_PERSISTENCE === '1' && global.__carTrackerMemoryAdapter) {
     return global.__carTrackerMemoryAdapter;
   }
   const bucket = process.env.S3_PERSISTENCE_BUCKET;
   if (!bucket) {
-    // Local / missing env: in-memory so syntax tests still load
     const store = {};
     return {
       async getAttributes(requestEnvelope) {

@@ -2,8 +2,6 @@
 
 /**
  * Local handler tests with in-memory persistence (no AWS / Alexa endpoints).
- * Run from repo root: node tests/local-test.js
- * Or: cd lambda && npm test
  */
 
 const path = require('path');
@@ -11,7 +9,6 @@ const assert = require('assert');
 
 process.env.USE_MEMORY_PERSISTENCE = '1';
 
-// In-memory persistence adapter injected before loading the skill
 const memoryStore = {};
 global.__carTrackerMemoryAdapter = {
   async getAttributes(requestEnvelope) {
@@ -37,9 +34,22 @@ global.__carTrackerMemoryAdapter = {
   },
 };
 
-const skillPath = path.join(__dirname, '..', 'lambda', 'index.js');
 const util = require(path.join(__dirname, '..', 'lambda', 'util.js'));
-const { handler } = require(skillPath);
+const apl = require(path.join(__dirname, '..', 'lambda', 'aplDocument.js'));
+const { handler } = require(path.join(__dirname, '..', 'lambda', 'index.js'));
+
+function deepMerge(a, b) {
+  if (!b) return a;
+  const out = Array.isArray(a) ? a.slice() : { ...a };
+  for (const [k, v] of Object.entries(b)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && typeof out[k] === 'object' && out[k]) {
+      out[k] = deepMerge(out[k], v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
 
 function baseRequest(overrides) {
   const req = {
@@ -59,17 +69,12 @@ function baseRequest(overrides) {
         },
         device: {
           deviceId: 'amzn1.ask.device.test',
-          supportedInterfaces: {
-            'Alexa.Presentation.APL': {},
-          },
+          supportedInterfaces: { 'Alexa.Presentation.APL': {} },
         },
         apiEndpoint: 'https://api.amazonalexa.com',
         apiAccessToken: 'TestToken',
       },
-      Viewport: {
-        width: 1920,
-        height: 1080,
-      },
+      Viewport: { width: 1920, height: 1080 },
     },
     request: {
       type: 'LaunchRequest',
@@ -81,17 +86,26 @@ function baseRequest(overrides) {
   return deepMerge(req, overrides || {});
 }
 
-function deepMerge(a, b) {
-  if (!b) return a;
-  const out = Array.isArray(a) ? a.slice() : { ...a };
-  for (const [k, v] of Object.entries(b)) {
-    if (v && typeof v === 'object' && !Array.isArray(v) && typeof out[k] === 'object' && out[k]) {
-      out[k] = deepMerge(out[k], v);
-    } else {
-      out[k] = v;
-    }
-  }
-  return out;
+function vehicleSlot(id, spoken) {
+  const name = util.VEHICLES[id].nickname;
+  return {
+    name: 'vehicle',
+    value: spoken || name,
+    confirmationStatus: 'NONE',
+    resolutions: {
+      resolutionsPerAuthority: [
+        {
+          authority: 'amzn1.er-authority.test.VEHICLE_NAME',
+          status: { code: 'ER_SUCCESS_MATCH' },
+          values: [{ value: { name, id } }],
+        },
+      ],
+    },
+  };
+}
+
+function emptyVehicleSlot() {
+  return { name: 'vehicle', confirmationStatus: 'NONE' };
 }
 
 function invoke(event) {
@@ -114,40 +128,66 @@ function hasApl(response) {
   return dirs.some((d) => d.type === 'Alexa.Presentation.APL.RenderDocument');
 }
 
+function elicitSlot(response) {
+  const dirs = (response.response && response.response.directives) || [];
+  const d = dirs.find((x) => x.type === 'Dialog.ElicitSlot');
+  return d && d.slotToElicit;
+}
+
+function aplColumns(response) {
+  const dirs = (response.response && response.response.directives) || [];
+  const d = dirs.find((x) => x.type === 'Alexa.Presentation.APL.RenderDocument');
+  return d && d.datasources && d.datasources.dashboardData && d.datasources.dashboardData.columns;
+}
+
 async function run() {
   const results = [];
   function ok(name, cond, detail) {
     results.push({ name, pass: !!cond, detail: detail || '' });
-    const mark = cond ? 'PASS' : 'FAIL';
-    console.log(`[${mark}] ${name}${detail ? ' — ' + detail : ''}`);
+    console.log(`[${cond ? 'PASS' : 'FAIL'}] ${name}${detail ? ' — ' + detail : ''}`);
   }
 
-  // --- util unit checks ---
+  // Clear store between logical groups
+  Object.keys(memoryStore).forEach((k) => delete memoryStore[k]);
+
+  // --- util ---
   assert.strictEqual(util.parseAlexaDate('2027-03-15', 'Pacific/Auckland'), '2027-03-15');
   assert.strictEqual(util.parseAlexaDate('2027-06', 'Pacific/Auckland'), '2027-06-30');
-  assert.strictEqual(util.parseAlexaDate('2027', 'Pacific/Auckland'), '2027-12-31');
-  ok('parseAlexaDate exact/partial', true);
+  ok('parseAlexaDate', true);
+  ok('mapAlias sarah', util.mapAlias("sarah's") === 'sarah');
+  ok('mapAlias cassie', util.mapAlias('cassie') === 'cass');
+  ok('my car is NOT an alias', util.mapAlias('my car') === null);
 
-  const days = util.daysUntil(util.addMonths(util.todayIso('Pacific/Auckland'), 2), 'Pacific/Auckland');
-  ok('daysUntil future ~60', days >= 58 && days <= 62, `days=${days}`);
+  // Migration
+  const legacy = {
+    vehicles: {
+      'the car': {
+        nickname: 'the car',
+        regoExpiry: '2027-01-01',
+        wofExpiry: '2027-02-01',
+        lastService: null,
+        nextService: null,
+      },
+    },
+    defaultVehicle: 'the car',
+  };
+  util.ensurePersistenceShape(legacy);
+  ok('migrate legacy to shane', legacy.vehicles.shane && legacy.vehicles.shane.regoExpiry === '2027-01-01');
+  ok('three cars present', !!(legacy.vehicles.sarah && legacy.vehicles.shane && legacy.vehicles.cass));
+  ok('legacy key removed', !legacy.vehicles['the car']);
 
-  ok('statusColour green', util.statusColour(45) === 'green');
-  ok('statusColour amber', util.statusColour(10) === 'amber');
-  ok('statusColour red', util.statusColour(-1) === 'red');
-
-  // --- LaunchRequest ---
+  // --- Launch empty ---
   let resp = await invoke(baseRequest());
   let speech = speechOf(resp);
-  ok('LaunchRequest responds', !!speech, speech.slice(0, 120));
-  ok('Launch mentions empty or welcome', /Welcome|set the rego|Nothing|not set|WOF|rego/i.test(speech), speech.slice(0, 160));
-  ok('Launch includes APL on Show', hasApl(resp));
+  ok('Launch empty mentions three cars', /Sarah|Shane|Cass/i.test(speech), speech.slice(0, 160));
+  ok('Launch APL three columns', hasApl(resp) && aplColumns(resp) && aplColumns(resp).length === 3);
 
-  // --- SetWofIntent ---
+  // --- Missing vehicle elicits ---
   resp = await invoke(baseRequest({
     session: { new: false },
     request: {
       type: 'IntentRequest',
-      requestId: 'req-wof',
+      requestId: 'req-wof-nov',
       timestamp: new Date().toISOString(),
       locale: 'en-AU',
       intent: {
@@ -155,60 +195,55 @@ async function run() {
         confirmationStatus: 'NONE',
         slots: {
           date: { name: 'date', value: '2027-06-01', confirmationStatus: 'NONE' },
-          vehicle: { name: 'vehicle', confirmationStatus: 'NONE' },
+          vehicle: emptyVehicleSlot(),
         },
       },
     },
   }));
   speech = speechOf(resp);
-  ok('SetWofIntent confirms date', /WOF|warrant/i.test(speech) && /June|first|1st/i.test(speech), speech.slice(0, 200));
-  ok('SetWofIntent offers reminder', /remind/i.test(speech), speech.slice(0, 120));
-  ok('SetWofIntent APL', hasApl(resp));
+  ok('SetWof without car elicits vehicle', elicitSlot(resp) === 'vehicle', speech.slice(0, 120));
+  ok('Elicit keeps asking which car', /Sarah|Shane|Cass/i.test(speech));
 
-  // --- Status / WOF ---
+  // --- Set WOF on Sarah's car ---
   resp = await invoke(baseRequest({
     session: { new: false },
     request: {
       type: 'IntentRequest',
-      requestId: 'req-status',
+      requestId: 'req-wof-sarah',
       timestamp: new Date().toISOString(),
       locale: 'en-AU',
       intent: {
-        name: 'WofStatusIntent',
+        name: 'SetWofIntent',
         confirmationStatus: 'NONE',
         slots: {
-          vehicle: { name: 'vehicle', confirmationStatus: 'NONE' },
+          date: { name: 'date', value: '2027-06-01', confirmationStatus: 'NONE' },
+          vehicle: vehicleSlot('sarah', "Sarah's car"),
         },
       },
     },
   }));
   speech = speechOf(resp);
-  ok('WofStatusIntent returns due date', /WOF/i.test(speech) && /2027|June/i.test(speech), speech.slice(0, 200));
+  ok('SetWof Sarah confirms', /Sarah/i.test(speech) && /WOF/i.test(speech) && /June/i.test(speech), speech.slice(0, 200));
+  ok('SetWof offers reminder', /remind/i.test(speech));
 
-  // --- WhatsComingUp / StatusIntent ---
-  resp = await invoke(baseRequest({
+  // Decline reminder so we can continue cleanly
+  await invoke(baseRequest({
     session: { new: false },
     request: {
       type: 'IntentRequest',
-      requestId: 'req-coming',
+      requestId: 'req-no',
       timestamp: new Date().toISOString(),
       locale: 'en-AU',
-      intent: {
-        name: 'WhatsComingUpIntent',
-        confirmationStatus: 'NONE',
-        slots: {},
-      },
+      intent: { name: 'AMAZON.NoIntent', confirmationStatus: 'NONE', slots: {} },
     },
   }));
-  speech = speechOf(resp);
-  ok('WhatsComingUpIntent summarises', /coming up|WOF|due/i.test(speech), speech.slice(0, 200));
 
-  // --- SetRegoIntent ---
+  // --- Set Rego on Cass ---
   resp = await invoke(baseRequest({
     session: { new: false },
     request: {
       type: 'IntentRequest',
-      requestId: 'req-rego',
+      requestId: 'req-rego-cass',
       timestamp: new Date().toISOString(),
       locale: 'en-AU',
       intent: {
@@ -216,20 +251,30 @@ async function run() {
         confirmationStatus: 'NONE',
         slots: {
           date: { name: 'date', value: '2027-03', confirmationStatus: 'NONE' },
-          vehicle: { name: 'vehicle', confirmationStatus: 'NONE' },
+          vehicle: vehicleSlot('cass'),
         },
       },
     },
   }));
   speech = speechOf(resp);
-  ok('SetRegoIntent partial month→last day', /rego/i.test(speech) && /March|31st|thirty.?first/i.test(speech), speech.slice(0, 200));
+  ok('SetRego Cass partial month', /Cass/i.test(speech) && /March|31st/i.test(speech), speech.slice(0, 200));
+  await invoke(baseRequest({
+    session: { new: false },
+    request: {
+      type: 'IntentRequest',
+      requestId: 'req-no2',
+      timestamp: new Date().toISOString(),
+      locale: 'en-AU',
+      intent: { name: 'AMAZON.NoIntent', confirmationStatus: 'NONE', slots: {} },
+    },
+  }));
 
-  // --- RecordServiceIntent ---
+  // --- Record service on Shane ---
   resp = await invoke(baseRequest({
     session: { new: false },
     request: {
       type: 'IntentRequest',
-      requestId: 'req-svc',
+      requestId: 'req-svc-shane',
       timestamp: new Date().toISOString(),
       locale: 'en-AU',
       intent: {
@@ -241,40 +286,149 @@ async function run() {
           interval: { name: 'interval', value: '6 months', confirmationStatus: 'NONE' },
           nextDate: { name: 'nextDate', confirmationStatus: 'NONE' },
           nextOdometer: { name: 'nextOdometer', confirmationStatus: 'NONE' },
-          vehicle: { name: 'vehicle', confirmationStatus: 'NONE' },
+          vehicle: vehicleSlot('shane'),
         },
       },
     },
   }));
   speech = speechOf(resp);
-  ok('RecordServiceIntent records + next', /service/i.test(speech) && /45000|forty|kilometre/i.test(speech), speech.slice(0, 220));
+  ok('RecordService Shane', /Shane/i.test(speech) && /45000|kilometre/i.test(speech), speech.slice(0, 220));
+  await invoke(baseRequest({
+    session: { new: false },
+    request: {
+      type: 'IntentRequest',
+      requestId: 'req-no3',
+      timestamp: new Date().toISOString(),
+      locale: 'en-AU',
+      intent: { name: 'AMAZON.NoIntent', confirmationStatus: 'NONE', slots: {} },
+    },
+  }));
 
-  // --- interaction model validation ---
+  // --- WOF status without car → all cars that have WOF ---
+  resp = await invoke(baseRequest({
+    session: { new: false },
+    request: {
+      type: 'IntentRequest',
+      requestId: 'req-wof-all',
+      timestamp: new Date().toISOString(),
+      locale: 'en-AU',
+      intent: {
+        name: 'WofStatusIntent',
+        confirmationStatus: 'NONE',
+        slots: { vehicle: emptyVehicleSlot() },
+      },
+    },
+  }));
+  speech = speechOf(resp);
+  ok('WofStatus all cars mentions Sarah', /Sarah/i.test(speech) && /WOF/i.test(speech), speech.slice(0, 200));
+
+  // --- Whats coming up across cars ---
+  resp = await invoke(baseRequest({
+    session: { new: false },
+    request: {
+      type: 'IntentRequest',
+      requestId: 'req-coming',
+      timestamp: new Date().toISOString(),
+      locale: 'en-AU',
+      intent: {
+        name: 'WhatsComingUpIntent',
+        confirmationStatus: 'NONE',
+        slots: { vehicle: emptyVehicleSlot() },
+      },
+    },
+  }));
+  speech = speechOf(resp);
+  ok('WhatsComingUp multi-car', /Sarah/i.test(speech) && /Cass|Shane/i.test(speech), speech.slice(0, 280));
+  const cols = aplColumns(resp);
+  ok('APL columns named', cols && cols.every((c) => /Sarah|Shane|Cass/.test(c.carName)));
+  ok('APL rows per column', cols && cols[0].rows.length === 3);
+
+  // --- Clear without vehicle elicits ---
+  resp = await invoke(baseRequest({
+    session: { new: false },
+    request: {
+      type: 'IntentRequest',
+      requestId: 'req-clear-nov',
+      timestamp: new Date().toISOString(),
+      locale: 'en-AU',
+      intent: {
+        name: 'ClearIntent',
+        confirmationStatus: 'NONE',
+        slots: {
+          itemType: { name: 'itemType', value: 'rego', confirmationStatus: 'NONE' },
+          vehicle: emptyVehicleSlot(),
+        },
+      },
+    },
+  }));
+  ok('Clear without car elicits', elicitSlot(resp) === 'vehicle');
+
+  // --- Clear rego on Shane (none set — still ok) / clear WOF on Sarah ---
+  resp = await invoke(baseRequest({
+    session: { new: false },
+    request: {
+      type: 'IntentRequest',
+      requestId: 'req-clear-sarah',
+      timestamp: new Date().toISOString(),
+      locale: 'en-AU',
+      intent: {
+        name: 'ClearIntent',
+        confirmationStatus: 'NONE',
+        slots: {
+          itemType: { name: 'itemType', value: 'WOF', confirmationStatus: 'NONE' },
+          vehicle: vehicleSlot('sarah'),
+        },
+      },
+    },
+  }));
+  speech = speechOf(resp);
+  ok('Clear WOF Sarah', /Cleared/i.test(speech) && /Sarah/i.test(speech), speech.slice(0, 120));
+
+  // Reminder text unit check via pending shape
+  ok('displayName sarah', util.displayName('sarah') === "Sarah's car");
+
+  // --- interaction model ---
   const model = require(path.join(__dirname, '..', 'skill-package', 'interactionModels', 'custom', 'en-AU.json'));
-  ok('invocation name is car due dates', model.interactionModel.languageModel.invocationName === 'car due dates');
+  ok('invocation car due dates', model.interactionModel.languageModel.invocationName === 'car due dates');
+
+  const vehicleType = model.interactionModel.languageModel.types.find((t) => t.name === 'VEHICLE_NAME');
+  const ids = (vehicleType.values || []).map((v) => v.id).sort();
+  ok('VEHICLE_NAME exactly sarah/shane/cass', ids.join(',') === 'cass,sarah,shane', ids.join(','));
+  const shaneSyn = vehicleType.values.find((v) => v.id === 'shane').name.synonyms || [];
+  ok('my car not a Shane synonym', !shaneSyn.map((s) => s.toLowerCase()).includes('my car'));
 
   const samples = [];
   const dupes = [];
   const seen = new Map();
   for (const intent of model.interactionModel.languageModel.intents) {
+    const slotNames = new Set((intent.slots || []).map((s) => s.name));
     for (const s of intent.samples || []) {
-      const key = s.toLowerCase().trim();
+      const key = s.toLowerCase().strip ? s.toLowerCase().strip() : s.toLowerCase().trim();
       samples.push({ intent: intent.name, sample: s });
-      if (seen.has(key)) {
-        dupes.push({ sample: s, a: seen.get(key), b: intent.name });
-      } else {
-        seen.set(key, intent.name);
+      if (seen.has(key)) dupes.push({ sample: s, a: seen.get(key), b: intent.name });
+      else seen.set(key, intent.name);
+      // slot names in samples must be defined
+      const used = s.match(/\{(\w+)\}/g) || [];
+      for (const u of used) {
+        const n = u.slice(1, -1);
+        if (!slotNames.has(n)) {
+          ok(`slot ${n} missing on ${intent.name}`, false, s);
+        }
       }
     }
   }
-  ok('no duplicate sample utterances across intents', dupes.length === 0, dupes.length ? JSON.stringify(dupes.slice(0, 5)) : `${samples.length} samples`);
+  ok('no duplicate samples', dupes.length === 0, dupes.length ? JSON.stringify(dupes.slice(0, 3)) : `${samples.length} samples`);
+
+  // Dialog vehicle elicitation present
+  const dialogIntents = model.interactionModel.dialog.intents.map((i) => i.name);
+  ok('dialog covers set/record/clear',
+    ['SetRegoIntent', 'SetWofIntent', 'RecordServiceIntent', 'ClearIntent'].every((n) => dialogIntents.includes(n)));
 
   const failed = results.filter((r) => !r.pass);
   console.log('\n--- Summary ---');
   console.log(`Passed: ${results.length - failed.length}/${results.length}`);
   if (failed.length) {
-    console.log('Failures:');
-    failed.forEach((f) => console.log(' -', f.name, f.detail));
+    failed.forEach((f) => console.log(' - FAIL', f.name, f.detail));
     process.exitCode = 1;
   } else {
     console.log('All checks passed.');

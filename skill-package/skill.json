@@ -5,11 +5,11 @@
       "locales": {
         "en-AU": {
           "name": "My Car Tracker",
-          "summary": "Private skill to track your car's rego, WOF and servicing.",
-          "description": "Track New Zealand vehicle registration (rego), Warrant of Fitness (WOF), and service due dates. Ask what's coming up, set expiry dates, record a service with optional odometer, and optionally create Alexa reminders. Designed for private use on an Echo Show 15 (developer mode). Uses New Zealand English wording and Pacific/Auckland dates.",
+          "summary": "Private skill to track rego, WOF and servicing for Sarah's, Shane's and Cass's cars.",
+          "description": "Track New Zealand vehicle registration (rego), Warrant of Fitness (WOF), and service due dates for Sarah's car, Shane's car, and Cass's car. Ask what's coming up across all three, set expiry dates per car, record a service with optional odometer, and optionally create Alexa reminders. Private use on an Echo Show 15 (developer mode). New Zealand English wording; Pacific/Auckland dates.",
           "examplePhrases": [
             "Alexa, open car due dates",
-            "Alexa, ask car due dates when's the WOF due",
+            "Alexa, ask car due dates when's the WOF due on Sarah's car",
             "Alexa, ask car due dates what's coming up"
           ],
           "keywords": [
@@ -25,7 +25,7 @@
         }
       },
       "isAvailableWorldwide": false,
-      "testingInstructions": "Private developer skill for Shane Jenkins (NZ). Enable in Development stage. Test on Echo Show 15 with en-AU language. Grant Reminders permission when prompted. Sample: open car due dates; set the WOF due date to the first of June twenty twenty seven; what's coming up.",
+      "testingInstructions": "Private developer skill for Shane Jenkins (NZ). Three cars: Sarah's, Shane's, Cass's. Enable in Development. Test on Echo Show 15 with en-AU. Grant Reminders when prompted. Sample: open car due dates; set the WOF on Sarah's car to the first of June twenty twenty seven; what's coming up.",
       "category": "ORGANIZERS_AND_ASSISTANTS",
       "distributionCountries": [
         "AU",

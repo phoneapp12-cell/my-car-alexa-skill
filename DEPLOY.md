@@ -76,10 +76,10 @@ If you want APL viewport metadata / publishing text from this repo:
 2. Set the skill stage to **Development** (dropdown at the top).
 3. Try typed/voice phrases, for example:
    - `open car due dates`
-   - `set the WOF due date to the first of June twenty twenty seven`
+   - `set the WOF on Sarah's car to the first of June twenty twenty seven`
    - `when's the WOF due`
    - `set the rego expiry to the fifteenth of March twenty twenty seven`
-   - `record a service today at forty five thousand kilometres next service every six months`
+   - `record a service on Shane's car today at forty five thousand kilometres next service every six months`
    - `what's coming up`
    - `yes` (when offered a reminder)
 
@@ -138,18 +138,21 @@ Private Git repos are **not** supported for this Import flow.
 
 ## Everyday phrases (NZ English)
 
+Three cars: **Sarah's car**, **Shane's car**, **Cass's car**. Name the car when setting, recording, or clearing.
+
 | You say | Skill does |
 |--------|------------|
-| “Alexa, open car due dates” | Launch summary of what’s due next |
-| “Set the rego expiry to the fifteenth of March” | Saves rego; offers a 2-week reminder |
-| “Set the WOF due date to June” | Saves WOF (month-only → end of month); offers reminder |
-| “Record a service today at forty five thousand kilometres, next service every six months” | Logs service + next due |
-| “When’s the rego due?” / “When’s my WOF due?” / “When is the car due for a service?” | Status for that item |
-| “What’s coming up?” | All items, soonest first, with days left / overdue |
-| “Clear the WOF” | Clears that date |
+| “Alexa, open car due dates” | Summary across all three cars + APL dashboard |
+| “Set the WOF on Sarah's car to the first of June” | Saves Sarah's WOF; offers a 2-week reminder |
+| “Set the rego on Cass's car to the fifteenth of March” | Saves Cass's rego (month-only → end of month) |
+| “Record a service on Shane's car today at forty five thousand kilometres” | Logs Shane's service |
+| “When’s the rego due on Cass's car?” | Status for that car |
+| “When’s the WOF due?” | WOF status for every car that has one |
+| “What’s coming up?” | All items across all cars, soonest/overdue first |
+| “Clear the rego on Shane's car” | Clears that date |
 | “Help” / “Stop” | Help text / exit |
 
-Optional vehicle nickname or plate: add values under the `VEHICLE_NAME` type in the interaction model JSON if you have more than one car.
+If you omit the car on a set/record/clear, Alexa asks: “Which car, Sarah's, Shane's or Cass's?”
 
 ---
 

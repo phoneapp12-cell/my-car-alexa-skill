@@ -1,12 +1,44 @@
 'use strict';
 
 /**
- * Helpers for NZ car tracker: dates, vehicles, status colours, speech.
+ * Helpers for NZ car tracker: dates, three named vehicles, status colours, speech.
  * Timezone: device Settings API when available, else Pacific/Auckland.
  */
 
 const DEFAULT_TIMEZONE = 'Pacific/Auckland';
-const DEFAULT_VEHICLE = 'the car';
+
+/** Canonical cars — keys are entity-resolution IDs. */
+const VEHICLES = {
+  sarah: { id: 'sarah', nickname: "Sarah's car" },
+  shane: { id: 'shane', nickname: "Shane's car" },
+  cass: { id: 'cass', nickname: "Cass's car" },
+};
+
+const VEHICLE_ORDER = ['sarah', 'shane', 'cass'];
+
+/** Synonym → id (lowercase). "my car" is intentionally NOT mapped. */
+const VEHICLE_ALIASES = {
+  sarah: 'sarah',
+  "sarah's": 'sarah',
+  "sarah's car": 'sarah',
+  'sarahs car': 'sarah',
+  'sarah car': 'sarah',
+  shane: 'shane',
+  "shane's": 'shane',
+  "shane's car": 'shane',
+  'shanes car': 'shane',
+  'shane car': 'shane',
+  cass: 'cass',
+  "cass's": 'cass',
+  "cass's car": 'cass',
+  'casss car': 'cass',
+  'cass car': 'cass',
+  cassie: 'cass',
+  "cassie's": 'cass',
+  "cassie's car": 'cass',
+};
+
+const LEGACY_KEYS = ['the car', 'car', 'default', 'the vehicle', 'my car'];
 
 const STATUS = {
   GREEN: 'green',
@@ -14,13 +46,13 @@ const STATUS = {
   RED: 'red',
 };
 
+const ELICIT_VEHICLE_SPEECH =
+  "Which car — Sarah's, Shane's, or Cass's?";
+
 function getDefaultTimezone() {
   return DEFAULT_TIMEZONE;
 }
 
-/**
- * Resolve device timezone via UpsServiceClient; fall back to Pacific/Auckland.
- */
 async function getTimezone(handlerInput) {
   try {
     const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
@@ -36,9 +68,6 @@ async function getTimezone(handlerInput) {
   return DEFAULT_TIMEZONE;
 }
 
-/**
- * "Today" as YYYY-MM-DD in the given IANA timezone.
- */
 function todayIso(timezone) {
   const tz = timezone || DEFAULT_TIMEZONE;
   try {
@@ -57,34 +86,21 @@ function todayIso(timezone) {
   }
 }
 
-/**
- * Parse AMAZON.DATE slot values into a concrete YYYY-MM-DD.
- * Handles: YYYY-MM-DD, YYYY-MM, YYYY, XXXX-Wxx (week), weekends, seasons, decades.
- * Partial month/year → last day of that month (sensible for "expiry").
- */
 function parseAlexaDate(slotValue, timezone) {
   if (!slotValue || typeof slotValue !== 'string') return null;
   const raw = slotValue.trim();
   const today = todayIso(timezone);
 
-  // Exact date
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    return raw;
-  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
 
-  // Month + year → last day of month (expiry-friendly)
   if (/^\d{4}-\d{2}$/.test(raw)) {
     const [y, m] = raw.split('-').map(Number);
     const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
     return `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
   }
 
-  // Year only → 31 Dec
-  if (/^\d{4}$/.test(raw)) {
-    return `${raw}-12-31`;
-  }
+  if (/^\d{4}$/.test(raw)) return `${raw}-12-31`;
 
-  // Week: 2026-W12 → Monday of that ISO week (or Friday for expiry feel — use Monday)
   const weekMatch = raw.match(/^(\d{4})-W(\d{2})(?:-WE)?$/);
   if (weekMatch) {
     const year = Number(weekMatch[1]);
@@ -93,20 +109,15 @@ function parseAlexaDate(slotValue, timezone) {
     const dayOfWeek = jan4.getUTCDay() || 7;
     const monday = new Date(jan4);
     monday.setUTCDate(jan4.getUTCDate() - dayOfWeek + 1 + (week - 1) * 7);
-    if (raw.endsWith('-WE')) {
-      // weekend → Sunday of that week
-      monday.setUTCDate(monday.getUTCDate() + 6);
-    }
+    if (raw.endsWith('-WE')) monday.setUTCDate(monday.getUTCDate() + 6);
     return monday.toISOString().slice(0, 10);
   }
 
-  // Decade: 202X → mid decade
   if (/^\d{3}X$/.test(raw)) {
     const decade = Number(raw.slice(0, 3) + '0');
     return `${decade + 5}-06-30`;
   }
 
-  // Seasons: 2026-SP / SU / FA / WI
   const season = raw.match(/^(\d{4})-(SP|SU|FA|WI)$/);
   if (season) {
     const y = season[1];
@@ -114,17 +125,10 @@ function parseAlexaDate(slotValue, timezone) {
     return map[season[2]];
   }
 
-  // Relative tokens Alexa sometimes returns (present_ref etc.) — treat as today
-  if (raw === 'PRESENT_REF' || raw.toLowerCase() === 'today') {
-    return today;
-  }
-
+  if (raw === 'PRESENT_REF' || raw.toLowerCase() === 'today') return today;
   return null;
 }
 
-/**
- * Days from today (in tz) to target YYYY-MM-DD. Negative = overdue.
- */
 function daysUntil(isoDate, timezone) {
   if (!isoDate) return null;
   const today = todayIso(timezone);
@@ -141,9 +145,6 @@ function statusColour(days) {
   return STATUS.GREEN;
 }
 
-/**
- * Speak a date in NZ English style: "15 March 2026" / "15th of March".
- */
 function speakDate(isoDate) {
   if (!isoDate) return 'an unknown date';
   const [y, m, d] = isoDate.split('-').map(Number);
@@ -151,9 +152,7 @@ function speakDate(isoDate) {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
-  const day = d;
-  const suffix = ordinalSuffix(day);
-  return `${day}${suffix} of ${months[m - 1]} ${y}`;
+  return `${d}${ordinalSuffix(d)} of ${months[m - 1]} ${y}`;
 }
 
 function ordinalSuffix(n) {
@@ -176,22 +175,11 @@ function speakDaysRemaining(days) {
   return `${days} days remaining`;
 }
 
-function ensurePersistenceShape(attrs) {
-  if (!attrs.vehicles || typeof attrs.vehicles !== 'object') {
-    attrs.vehicles = {};
-  }
-  if (!attrs.defaultVehicle) {
-    attrs.defaultVehicle = DEFAULT_VEHICLE;
-  }
-  if (!attrs.vehicles[attrs.defaultVehicle]) {
-    attrs.vehicles[attrs.defaultVehicle] = emptyVehicle(attrs.defaultVehicle);
-  }
-  return attrs;
-}
-
-function emptyVehicle(nickname) {
+function emptyVehicle(id) {
+  const meta = VEHICLES[id] || { id, nickname: id };
   return {
-    nickname: nickname || DEFAULT_VEHICLE,
+    id: meta.id,
+    nickname: meta.nickname,
     plate: null,
     regoExpiry: null,
     wofExpiry: null,
@@ -200,44 +188,146 @@ function emptyVehicle(nickname) {
   };
 }
 
+function vehicleHasData(v) {
+  if (!v) return false;
+  return !!(v.regoExpiry || v.wofExpiry ||
+    (v.lastService && (v.lastService.date || v.lastService.odometerKm)) ||
+    (v.nextService && (v.nextService.date || v.nextService.odometerKm)));
+}
+
 /**
- * Resolve which vehicle the user meant from slots / defaults.
+ * Migrate legacy single-vehicle data ("the car", etc.) onto Shane's car.
+ * Always ensure sarah / shane / cass exist.
+ */
+function ensurePersistenceShape(attrs) {
+  if (!attrs.vehicles || typeof attrs.vehicles !== 'object') {
+    attrs.vehicles = {};
+  }
+
+  // Migrate legacy keys → shane (once)
+  if (!attrs._migratedToThreeCars) {
+    for (const legacy of LEGACY_KEYS) {
+      if (attrs.vehicles[legacy] && vehicleHasData(attrs.vehicles[legacy])) {
+        const legacyData = attrs.vehicles[legacy];
+        const shane = attrs.vehicles.shane || emptyVehicle('shane');
+        // Merge only empty fields on shane so we don't wipe newer data
+        if (!shane.regoExpiry && legacyData.regoExpiry) shane.regoExpiry = legacyData.regoExpiry;
+        if (!shane.wofExpiry && legacyData.wofExpiry) shane.wofExpiry = legacyData.wofExpiry;
+        if (!shane.lastService && legacyData.lastService) shane.lastService = legacyData.lastService;
+        if (!shane.nextService && legacyData.nextService) shane.nextService = legacyData.nextService;
+        shane.id = 'shane';
+        shane.nickname = VEHICLES.shane.nickname;
+        attrs.vehicles.shane = shane;
+      }
+      if (attrs.vehicles[legacy]) delete attrs.vehicles[legacy];
+    }
+    // Also migrate if defaultVehicle pointed at a non-canonical key with data
+    const def = attrs.defaultVehicle;
+    if (def && !VEHICLES[def] && attrs.vehicles[def] && vehicleHasData(attrs.vehicles[def])) {
+      const legacyData = attrs.vehicles[def];
+      const shane = attrs.vehicles.shane || emptyVehicle('shane');
+      if (!shane.regoExpiry && legacyData.regoExpiry) shane.regoExpiry = legacyData.regoExpiry;
+      if (!shane.wofExpiry && legacyData.wofExpiry) shane.wofExpiry = legacyData.wofExpiry;
+      if (!shane.lastService && legacyData.lastService) shane.lastService = legacyData.lastService;
+      if (!shane.nextService && legacyData.nextService) shane.nextService = legacyData.nextService;
+      shane.id = 'shane';
+      shane.nickname = VEHICLES.shane.nickname;
+      attrs.vehicles.shane = shane;
+      delete attrs.vehicles[def];
+    }
+    attrs._migratedToThreeCars = true;
+  }
+
+  // Drop any other non-canonical keys (keep data? migrate unknown single leftover to shane)
+  for (const key of Object.keys(attrs.vehicles)) {
+    if (!VEHICLES[key]) {
+      if (vehicleHasData(attrs.vehicles[key])) {
+        const legacyData = attrs.vehicles[key];
+        const shane = attrs.vehicles.shane || emptyVehicle('shane');
+        if (!shane.regoExpiry && legacyData.regoExpiry) shane.regoExpiry = legacyData.regoExpiry;
+        if (!shane.wofExpiry && legacyData.wofExpiry) shane.wofExpiry = legacyData.wofExpiry;
+        if (!shane.lastService && legacyData.lastService) shane.lastService = legacyData.lastService;
+        if (!shane.nextService && legacyData.nextService) shane.nextService = legacyData.nextService;
+        attrs.vehicles.shane = shane;
+      }
+      delete attrs.vehicles[key];
+    }
+  }
+
+  for (const id of VEHICLE_ORDER) {
+    if (!attrs.vehicles[id]) {
+      attrs.vehicles[id] = emptyVehicle(id);
+    } else {
+      attrs.vehicles[id].id = id;
+      attrs.vehicles[id].nickname = VEHICLES[id].nickname;
+    }
+  }
+
+  attrs.defaultVehicle = null; // never silently pick a car for set/clear
+  return attrs;
+}
+
+function displayName(keyOrVehicle) {
+  if (!keyOrVehicle) return 'the car';
+  if (typeof keyOrVehicle === 'string') {
+    return (VEHICLES[keyOrVehicle] && VEHICLES[keyOrVehicle].nickname) || keyOrVehicle;
+  }
+  return keyOrVehicle.nickname || (VEHICLES[keyOrVehicle.id] && VEHICLES[keyOrVehicle.id].nickname) || 'the car';
+}
+
+/**
+ * Extract vehicle entity-resolution id from the vehicle slot, or null.
+ */
+function resolveVehicleId(slots) {
+  if (!slots || !slots.vehicle) return null;
+  const slot = slots.vehicle;
+
+  // Prefer entity resolution id
+  try {
+    const authorities = slot.resolutions && slot.resolutions.resolutionsPerAuthority;
+    if (authorities && authorities.length) {
+      for (const auth of authorities) {
+        if (auth.status && String(auth.status.code).includes('ER_SUCCESS_MATCH') &&
+          auth.values && auth.values[0] && auth.values[0].value) {
+          const id = auth.values[0].value.id;
+          if (id && VEHICLES[id]) return id;
+          const name = auth.values[0].value.name;
+          const mapped = mapAlias(name);
+          if (mapped) return mapped;
+        }
+      }
+    }
+  } catch (e) {
+    // fall through
+  }
+
+  if (slot.value) {
+    return mapAlias(slot.value);
+  }
+  return null;
+}
+
+function mapAlias(raw) {
+  if (!raw) return null;
+  const n = String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
+  if (VEHICLES[n]) return n;
+  if (VEHICLE_ALIASES[n]) return VEHICLE_ALIASES[n];
+  // strip trailing "car"
+  const stripped = n.replace(/'s\b/g, 's').replace(/\s+car$/, '');
+  if (VEHICLE_ALIASES[stripped]) return VEHICLE_ALIASES[stripped];
+  if (VEHICLE_ALIASES[`${stripped} car`]) return VEHICLE_ALIASES[`${stripped} car`];
+  return null;
+}
+
+/**
+ * Resolve vehicle; returns { key, vehicle } or { key: null, vehicle: null } if missing.
  */
 function resolveVehicle(attrs, slots) {
   ensurePersistenceShape(attrs);
-  const nick = slotString(slots, 'vehicle') ||
-    slotString(slots, 'nickname') ||
-    slotString(slots, 'plate');
-
-  if (!nick) {
-    const key = attrs.defaultVehicle || DEFAULT_VEHICLE;
-    if (!attrs.vehicles[key]) {
-      attrs.vehicles[key] = emptyVehicle(key);
-    }
-    return { key, vehicle: attrs.vehicles[key] };
-  }
-
-  const normalised = nick.trim().toLowerCase();
-  // Exact / fuzzy match on nickname or plate
-  for (const [key, v] of Object.entries(attrs.vehicles)) {
-    if (key.toLowerCase() === normalised) {
-      return { key, vehicle: v };
-    }
-    if (v.plate && String(v.plate).toLowerCase() === normalised) {
-      return { key, vehicle: v };
-    }
-    if (v.nickname && String(v.nickname).toLowerCase() === normalised) {
-      return { key, vehicle: v };
-    }
-  }
-
-  // Create new vehicle under this nickname
-  const key = normalised;
-  attrs.vehicles[key] = emptyVehicle(normalised);
-  if (Object.keys(attrs.vehicles).length === 1) {
-    attrs.defaultVehicle = key;
-  }
-  return { key, vehicle: attrs.vehicles[key] };
+  const id = resolveVehicleId(slots);
+  if (!id) return { key: null, vehicle: null };
+  if (!attrs.vehicles[id]) attrs.vehicles[id] = emptyVehicle(id);
+  return { key: id, vehicle: attrs.vehicles[id] };
 }
 
 function slotString(slots, name) {
@@ -252,44 +342,43 @@ function slotNumber(slots, name) {
   return Number.isFinite(n) ? n : null;
 }
 
-/**
- * Build sorted "what's coming up" items across one or all vehicles.
- */
-function collectDueItems(attrs, timezone, vehicleKey) {
+function collectDueItems(attrs, timezone, vehicleKey, typeFilter) {
   ensurePersistenceShape(attrs);
-  const keys = vehicleKey ? [vehicleKey] : Object.keys(attrs.vehicles);
+  const keys = vehicleKey ? [vehicleKey] : VEHICLE_ORDER.slice();
   const items = [];
 
   for (const key of keys) {
     const v = attrs.vehicles[key];
     if (!v) continue;
-    const label = v.nickname || key;
+    const label = displayName(key);
 
-    if (v.regoExpiry) {
+    if ((!typeFilter || typeFilter === 'rego') && v.regoExpiry) {
       const days = daysUntil(v.regoExpiry, timezone);
       items.push({
         type: 'rego',
         label: 'Rego',
+        vehicleKey: key,
         vehicle: label,
         date: v.regoExpiry,
         days,
         colour: statusColour(days),
-        spoken: `Rego for ${label} is due on ${speakDate(v.regoExpiry)}, ${speakDaysRemaining(days)}`,
+        spoken: `${label} rego is due on ${speakDate(v.regoExpiry)}, ${speakDaysRemaining(days)}`,
       });
     }
-    if (v.wofExpiry) {
+    if ((!typeFilter || typeFilter === 'wof') && v.wofExpiry) {
       const days = daysUntil(v.wofExpiry, timezone);
       items.push({
         type: 'wof',
         label: 'WOF',
+        vehicleKey: key,
         vehicle: label,
         date: v.wofExpiry,
         days,
         colour: statusColour(days),
-        spoken: `WOF for ${label} is due on ${speakDate(v.wofExpiry)}, ${speakDaysRemaining(days)}`,
+        spoken: `${label} WOF is due on ${speakDate(v.wofExpiry)}, ${speakDaysRemaining(days)}`,
       });
     }
-    if (v.nextService && v.nextService.date) {
+    if ((!typeFilter || typeFilter === 'service') && v.nextService && v.nextService.date) {
       const days = daysUntil(v.nextService.date, timezone);
       let extra = '';
       if (v.nextService.odometerKm) {
@@ -298,11 +387,12 @@ function collectDueItems(attrs, timezone, vehicleKey) {
       items.push({
         type: 'service',
         label: 'Service',
+        vehicleKey: key,
         vehicle: label,
         date: v.nextService.date,
         days,
         colour: statusColour(days),
-        spoken: `Service for ${label} is due on ${speakDate(v.nextService.date)}${extra}, ${speakDaysRemaining(days)}`,
+        spoken: `${label} service is due on ${speakDate(v.nextService.date)}${extra}, ${speakDaysRemaining(days)}`,
       });
     }
   }
@@ -318,7 +408,7 @@ function collectDueItems(attrs, timezone, vehicleKey) {
 function summariseItems(items, intro) {
   if (!items.length) {
     const lead = intro ? `${intro} ` : '';
-    return `${lead}Nothing is set yet. You can say, set the rego expiry to the fifteenth of March, or set the WOF due date to June.`;
+    return `${lead}Nothing is set yet. Say, for example, set the WOF on Sarah's car to June.`;
   }
   const overdue = items.filter((i) => i.days !== null && i.days < 0);
   const parts = items.map((i) => i.spoken);
@@ -337,9 +427,6 @@ function addMonths(isoDate, months) {
   return dt.toISOString().slice(0, 10);
 }
 
-/**
- * Parse interval utterances into months (e.g. "every 6 months", "12 months", "annually").
- */
 function parseIntervalMonths(raw) {
   if (!raw) return null;
   const s = String(raw).toLowerCase();
@@ -362,19 +449,14 @@ function supportsApl(handlerInput) {
 
 function hasRemindersPermission(handlerInput) {
   const perms = handlerInput.requestEnvelope.context.System.user.permissions;
-  // consentToken present historically; also check scopes if listed
   return !!(perms && (perms.consentToken || perms.scopes));
 }
 
-/**
- * Build absolute reminder scheduled datetime at 09:00 local for N days before due.
- */
 function reminderTriggerIso(dueIso, daysBefore, timezone) {
   const days = daysUntil(dueIso, timezone);
   if (days === null) return null;
   const triggerDaysFromNow = days - daysBefore;
   if (triggerDaysFromNow < 0) {
-    // already past preferred lead time — remind tomorrow 9am if still due in future
     if (days < 0) return null;
     return localNineAmIso(1, timezone);
   }
@@ -386,14 +468,11 @@ function localNineAmIso(daysFromToday, timezone) {
   const today = todayIso(tz);
   const base = Date.parse(`${today}T00:00:00Z`) + daysFromToday * 86400000;
   const ymd = new Date(base).toISOString().slice(0, 10);
-  // Scheduled absolute time as ISO with offset for Pacific/Auckland when possible
   const offset = aucklandOffsetFor(ymd);
   return `${ymd}T09:00:00${offset}`;
 }
 
 function aucklandOffsetFor(ymd) {
-  // NZDT UTC+13 roughly late Sep–early Apr; NZST UTC+12 otherwise.
-  // Use Intl to compute exact offset for that local noon.
   try {
     const probe = new Date(`${ymd}T12:00:00Z`);
     const fmt = new Intl.DateTimeFormat('en-US', {
@@ -405,7 +484,6 @@ function aucklandOffsetFor(ymd) {
     const parts = fmt.formatToParts(probe);
     const tzName = parts.find((p) => p.type === 'timeZoneName');
     if (tzName && tzName.value) {
-      // e.g. "GMT+12" or "GMT+13"
       const m = tzName.value.match(/GMT([+-]\d{1,2})(?::(\d{2}))?/);
       if (m) {
         const h = Number(m[1]);
@@ -423,8 +501,11 @@ function aucklandOffsetFor(ymd) {
 
 module.exports = {
   DEFAULT_TIMEZONE,
-  DEFAULT_VEHICLE,
+  VEHICLES,
+  VEHICLE_ORDER,
+  VEHICLE_ALIASES,
   STATUS,
+  ELICIT_VEHICLE_SPEECH,
   getDefaultTimezone,
   getTimezone,
   todayIso,
@@ -435,7 +516,10 @@ module.exports = {
   speakDaysRemaining,
   ensurePersistenceShape,
   emptyVehicle,
+  displayName,
+  resolveVehicleId,
   resolveVehicle,
+  mapAlias,
   slotString,
   slotNumber,
   collectDueItems,
@@ -446,4 +530,5 @@ module.exports = {
   hasRemindersPermission,
   reminderTriggerIso,
   localNineAmIso,
+  vehicleHasData,
 };
