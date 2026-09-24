@@ -251,7 +251,7 @@ async function run() {
 
   // --- interaction model validation ---
   const model = require(path.join(__dirname, '..', 'skill-package', 'interactionModels', 'custom', 'en-AU.json'));
-  ok('invocation name is my car', model.interactionModel.languageModel.invocationName === 'my car');
+  ok('invocation name is car due dates', model.interactionModel.languageModel.invocationName === 'car due dates');
 
   const samples = [];
   const dupes = [];
