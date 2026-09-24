@@ -193,6 +193,16 @@ async function run() {
   ok('skill.json ALEXA_EXTENSION datastore:10',
     ifs.some((i) => i.type === 'ALEXA_EXTENSION' && i.requestedExtensions.some((e) => e.uri === 'alexaext:datastore:10')));
   ok('skill.json still has APL', ifs.some((i) => i.type === 'ALEXA_PRESENTATION_APL'));
+  const aplIf = ifs.find((i) => i.type === 'ALEXA_PRESENTATION_APL');
+  const std = [
+    'HUB/ROUND/100-599/100-599', 'HUB/RECTANGLE/960-1279/100-599', 'HUB/RECTANGLE/960-1279/600-959',
+    'HUB/RECTANGLE/1280-1920/600-1279', 'HUB/RECTANGLE/1920-2560/960-1279',
+  ];
+  const vp = aplIf.supportedViewports.map((v) => `${v.mode}/${v.shape}/${v.minWidth}-${v.maxWidth}/${v.minHeight}-${v.maxHeight}`);
+  ok('supportedViewports are documented profiles incl. XLarge (Echo Show 15)', vp.every((v) => std.includes(v)) && vp.includes(std[4]), vp.join(' '));
+  ok('ask-resources.json present (hosted-skill layout)', fs.existsSync(path.join(ROOT, 'ask-resources.json')));
+  ok('skill-package has en-AU model + lambda entry files', ['skill-package/interactionModels/custom/en-AU.json', 'lambda/index.js', 'lambda/package.json']
+    .every((f) => fs.existsSync(path.join(ROOT, f))));
 
   // Sample datastore commands match binding
   const sample = readJson('widget/datastore-test-commands.json')[0];
@@ -280,6 +290,13 @@ async function run() {
 
   widget._setConfig({ clientId: 'amzn1.application-oa2-client.REPLACE_ME', clientSecret: 'REPLACE_ME', endpoint: '' });
   ok('placeholder config treated as unconfigured', !widget.isConfigured());
+  widget._setConfig({ clientId: 'amzn1.application-oa2-client.test', clientSecret: 'secret', endpoint: '' });
+
+  /* --- shipped config.js --- */
+  const shipped = require(path.join(ROOT, 'lambda', 'config.js'));
+  ok('shipped config.js has placeholders only', shipped.skillClientId === 'REPLACE_ME' && shipped.skillClientSecret === 'REPLACE_ME');
+  widget._setConfig(null);
+  ok('shipped config.js => widget push disabled (not configured)', !widget.isConfigured());
   widget._setConfig({ clientId: 'amzn1.application-oa2-client.test', clientSecret: 'secret', endpoint: '' });
 
   /* --- endpoint resolution --- */

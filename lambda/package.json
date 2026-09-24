@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node ../tests/local-test.js && node ../tests/widget-test.js",
-    "syntax": "node --check index.js && node --check util.js && node --check aplDocument.js && node --check widgetData.js && node --check config.example.js",
+    "syntax": "node --check index.js && node --check util.js && node --check aplDocument.js && node --check widgetData.js && node --check config.js",
     "build-widget": "node ../widget/build-widget.js"
   },
   "dependencies": {

@@ -30,7 +30,7 @@ DEPLOY.md         Step-by-step Developer Console deploy
 
 ## Echo Show 15 widget
 
-`CarDueDatesWidget` shows the three cars × Rego/WOF/Service with days left and a green/amber/red status. The skill pushes updates to the on-device data store (namespace `carDueDates`, key `dashboard`) through the Data Store REST API. Credentials go in `lambda/config.js`, which is created in the console and never committed (see `lambda/config.example.js`). Setup steps are in DEPLOY.md under "Add the widget to your Echo Show 15".
+`CarDueDatesWidget` shows the three cars × Rego/WOF/Service with days left and a green/amber/red status. The skill pushes updates to the on-device data store (namespace `carDueDates`, key `dashboard`) through the Data Store REST API. Credentials go in `lambda/config.js`. The repo copy has `REPLACE_ME` placeholders only; you fill in the real values in the console Code tab, never on GitHub. Setup steps are in DEPLOY.md under "Add the widget to your Echo Show 15".
 
 Regenerate widget files after editing the generator: `node widget/build-widget.js`
 
@@ -42,5 +42,5 @@ cd lambda && npm install && npm run syntax && npm test
 
 ## Deploy / update
 
-See **DEPLOY.md**. Public repo: https://github.com/phoneapp12-cell/my-car-alexa-skill  
+See **DEPLOY.md**. The 5-step "Quick install (fresh import)" is at the top. Public repo: https://github.com/phoneapp12-cell/my-car-alexa-skill  
 Do not publish; use Development stage on the same Amazon account as the Echo.

@@ -3,4 +3,3 @@ lambda/node_modules/
 .ask/
 *.log
 .DS_Store
-lambda/config.js

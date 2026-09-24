@@ -1,4 +1,50 @@
-# Deploy My Car Tracker (private / developer mode)
+# Car Due Dates — install guide
+
+## Quick install (fresh import) — recommended
+
+This sets up the whole skill and the Echo Show 15 widget in 5 steps. Stay signed in with the **same Amazon account** as your Echo the whole time. The skill stays private in **Development**, and you don't publish anything.
+
+**Before you start:** your saved dates don't move to the new skill. Each skill keeps its own data, so the new one starts empty. If you want a record, say "Alexa, ask car due dates what's coming up" now and write the dates down.
+
+1. **Create the skill by importing it.**
+   Go to developer.amazon.com, open the **Alexa Developer Console** and click **Create Skill**.
+   - Name: **Car Due Dates**
+   - Language: **English (AU)**
+   - Model: **Custom**
+   - Hosting: **Alexa-hosted (Node.js)**. Keep the suggested region (US West (Oregon) for English (AU)).
+   - When it asks you to pick a template, click **Import skill** instead and paste:
+     `https://github.com/phoneapp12-cell/my-car-alexa-skill.git`
+   - Click **Continue** (or **Create Skill**) and wait a couple of minutes.
+
+2. **Add your two keys.**
+   - In the new skill, go to **Build → Tools → Permissions** and scroll to the bottom. Copy **Alexa Client Id**, then click **SHOW** and copy **Alexa Client Secret**.
+   - While you're on this page, check that **Reminders** is switched on.
+   - Open the **Code** tab, then the file **lambda/config.js**. Replace the two `REPLACE_ME` values with your ID and secret, keeping the quote marks.
+   - Click **Save**, then **Deploy**.
+
+3. **Build.**
+   - Go to **Build → Interfaces** and check that these are on: **Alexa Presentation Language**, **Data Store Packages**, **Data Store**, and **Data Store** under Alexa Extensions. If any are off, switch them on and click **Save Interfaces**.
+   - Click **Build Model** (or **Build skill**) and wait until it says the build succeeded.
+
+4. **Send the widget to your Echo Show 15.**
+   - Go to **Build → Multimodal Responses → Widget**.
+   - Open **CarDueDatesWidget** (click **Edit**).
+   - At the bottom, click **Install**, pick your **Echo Show 15**, then click **Send to Device**.
+
+5. **Delete the old skill, add the widget, and re-enter your dates.**
+   - In the console skill list, delete your old "car due dates" skill (**Actions → Delete**). Two skills with the same invocation name confuse Alexa, and it may keep opening the old one.
+   - On the Echo Show 15, wait a few minutes. If the widget isn't in the Widget Panel, swipe down from the top edge to open the **Widget Gallery**, find **Car Due Dates** and tap **+**.
+   - Say **"Alexa, open car due dates"**, then add your dates again, for example: "set the WOF on Sarah's car to the first of June", "set the rego on Cass's car to the fifteenth of March", "record a service on Shane's car today at forty five thousand kilometres". The widget updates each time.
+
+**If something doesn't match:**
+- No **CarDueDatesWidget** in step 4: create it by hand. See "Add the widget to your Echo Show 15" → step D further down.
+- An interface in step 3 won't stay on: follow step A in that same section.
+- The widget stays empty: check `lambda/config.js` (step 2) and that you clicked **Deploy**.
+- Not yet confirmed on a real account: that the import switches on the widget interfaces and the Reminders permission by itself, that **CarDueDatesWidget** appears automatically, and that a development-stage widget installs and updates on a NZ-registered Echo Show 15.
+
+---
+
+## Full manual setup (reference)
 
 This skill is meant for **your own Echo devices** (including Echo Show 15) in **Development**, not published to the Alexa Skill Store. Sign in to the Alexa Developer Console with the **same Amazon account** that is registered on your Echo.
 
@@ -211,14 +257,14 @@ Steps marked ✅ come straight from Amazon's docs. Steps marked ⚠️ are my be
 
 Keep these private. Never paste them into GitHub.
 
-### C. Update the code and add `config.js` (Code tab)
+### C. Update the code and fill in `config.js` (Code tab)
 
 Alexa-hosted skills have no screen for Lambda environment variables, so the credentials go in a small file that exists only in your console, not in GitHub.
 
 1. Open the **Code** tab.
 2. Replace `lambda/index.js` with the new `lambda/index.js` from this project.
 3. Add a new file, `lambda/widgetData.js`, and paste in this project's `lambda/widgetData.js`. ⚠️ Use the new-file icon above the file tree.
-4. Add a new file, `lambda/config.js`. Paste in the contents of `lambda/config.example.js`, then replace the two `REPLACE_ME` values with the Client ID and Client Secret from step B.
+4. Open `lambda/config.js`, or add it and paste in this project's `lambda/config.js` if it's missing. Replace the two `REPLACE_ME` values with the Client ID and Client Secret from step B.
 5. Click **Save**, then **Deploy**.
 
 Leave `util.js`, `aplDocument.js` and `package.json` as they are. No new npm packages are needed.

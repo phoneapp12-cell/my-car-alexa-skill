@@ -34,7 +34,7 @@ function loadConfig() {
   if (configOverride) return configOverride;
   let fileCfg = {};
   try {
-    // lambda/config.js is created by the user in the Alexa-hosted Code tab (never committed).
+    // lambda/config.js ships with REPLACE_ME placeholders; the user fills it in the console Code tab only.
     // eslint-disable-next-line global-require
     fileCfg = require('./config') || {};
   } catch (e) {
