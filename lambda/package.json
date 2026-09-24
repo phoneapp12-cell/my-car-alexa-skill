@@ -1,0 +1,20 @@
+{
+  "name": "car-tracker-skill",
+  "version": "1.0.0",
+  "description": "Private Alexa skill to track NZ car rego, WOF and servicing",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ../tests/local-test.js",
+    "syntax": "node --check index.js && node --check util.js && node --check aplDocument.js"
+  },
+  "dependencies": {
+    "ask-sdk-core": "^2.14.0",
+    "ask-sdk-model": "^1.86.0",
+    "ask-sdk-s3-persistence-adapter": "^2.14.0"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

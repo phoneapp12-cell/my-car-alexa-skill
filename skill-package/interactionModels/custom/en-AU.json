@@ -1,0 +1,645 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "my car",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": [
+            "help",
+            "what can I say",
+            "how do I use this",
+            "what can you do"
+          ]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "SetRegoIntent",
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE",
+              "samples": [
+                "{date}",
+                "the {date}",
+                "on {date}",
+                "expires {date}",
+                "expiry is {date}"
+              ]
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "set the rego expiry to {date}",
+            "set rego expiry to {date}",
+            "set the rego to {date}",
+            "set rego to {date}",
+            "set the registration expiry to {date}",
+            "set registration expiry to {date}",
+            "the rego expires on {date}",
+            "rego expires {date}",
+            "rego is due on {date}",
+            "update the rego date to {date}",
+            "change the rego expiry to {date}",
+            "set the rego expiry for {vehicle} to {date}",
+            "set rego for {vehicle} to {date}",
+            "my rego expires on {date}"
+          ]
+        },
+        {
+          "name": "SetWofIntent",
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE",
+              "samples": [
+                "{date}",
+                "the {date}",
+                "on {date}",
+                "due {date}",
+                "due on {date}"
+              ]
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "set the WOF expiry to {date}",
+            "set WOF expiry to {date}",
+            "set the WOF to {date}",
+            "set WOF to {date}",
+            "set the WOF due date to {date}",
+            "set WOF due date to {date}",
+            "set the warrant to {date}",
+            "set the warrant of fitness to {date}",
+            "set warrant expiry to {date}",
+            "the WOF is due on {date}",
+            "WOF expires {date}",
+            "WOF is due {date}",
+            "update the WOF date to {date}",
+            "change the WOF expiry to {date}",
+            "set the WOF for {vehicle} to {date}",
+            "set WOF for {vehicle} to {date}",
+            "my WOF expires on {date}",
+            "my warrant is due on {date}"
+          ]
+        },
+        {
+          "name": "RecordServiceIntent",
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "odometer",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "nextDate",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "interval",
+              "type": "SERVICE_INTERVAL"
+            },
+            {
+              "name": "nextOdometer",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "record a service",
+            "record a service today",
+            "record a service on {date}",
+            "record a service at {odometer} kilometres",
+            "record a service on {date} at {odometer} kilometres",
+            "record a service today at {odometer} kilometres",
+            "log a service on {date}",
+            "log a service at {odometer} K",
+            "I had a service on {date}",
+            "I just had a service",
+            "the car was serviced on {date}",
+            "record a service on {date} next service {nextDate}",
+            "record a service on {date} next service in {interval}",
+            "record a service today next service every {interval}",
+            "record a service at {odometer} kilometres next service at {nextOdometer} kilometres",
+            "record a service for {vehicle} on {date}",
+            "serviced the car on {date}"
+          ]
+        },
+        {
+          "name": "SetNextServiceIntent",
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "interval",
+              "type": "SERVICE_INTERVAL"
+            },
+            {
+              "name": "nextOdometer",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "set the next service to {date}",
+            "set next service to {date}",
+            "set the next service date to {date}",
+            "next service is due on {date}",
+            "next service on {date}",
+            "set next service every {interval}",
+            "set the next service every {interval}",
+            "next service in {interval}",
+            "service every {interval}",
+            "set next service at {nextOdometer} kilometres",
+            "next service at {nextOdometer} kilometres",
+            "set next service for {vehicle} to {date}",
+            "the car is due for a service on {date}"
+          ]
+        },
+        {
+          "name": "StatusIntent",
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "status",
+            "car status",
+            "give me the status",
+            "what's the status",
+            "what is the status",
+            "status of {vehicle}",
+            "status for {vehicle}"
+          ]
+        },
+        {
+          "name": "WhatsComingUpIntent",
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "what's coming up",
+            "what is coming up",
+            "what's due",
+            "what is due",
+            "what's due next",
+            "what is due next",
+            "what's next",
+            "what is next",
+            "summarise",
+            "summarize",
+            "summary",
+            "give me a summary",
+            "what's coming up for {vehicle}"
+          ]
+        },
+        {
+          "name": "RegoStatusIntent",
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "when is my rego due",
+            "when's my rego due",
+            "when is the rego due",
+            "when's the rego due",
+            "when does the rego expire",
+            "when's the rego expiry",
+            "when is registration due",
+            "what's the rego date",
+            "what is the rego expiry",
+            "rego status",
+            "when is rego due for {vehicle}",
+            "when's the rego due for {vehicle}"
+          ]
+        },
+        {
+          "name": "WofStatusIntent",
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "when is my WOF due",
+            "when's my WOF due",
+            "when is the WOF due",
+            "when's the WOF due",
+            "when does the WOF expire",
+            "when's the WOF expiry",
+            "when is the warrant due",
+            "when's the warrant due",
+            "when is my warrant due",
+            "what's the WOF date",
+            "what is the WOF expiry",
+            "WOF status",
+            "when is WOF due for {vehicle}",
+            "when's the WOF due for {vehicle}"
+          ]
+        },
+        {
+          "name": "ServiceStatusIntent",
+          "slots": [
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "when is the car due for a service",
+            "when's the car due for a service",
+            "when is my car due for a service",
+            "when is the next service",
+            "when's the next service",
+            "when is service due",
+            "when's service due",
+            "when is the service due",
+            "service status",
+            "what's the next service date",
+            "when is {vehicle} due for a service"
+          ]
+        },
+        {
+          "name": "ClearIntent",
+          "slots": [
+            {
+              "name": "itemType",
+              "type": "ITEM_TYPE",
+              "samples": [
+                "{itemType}",
+                "the {itemType}",
+                "clear the {itemType}",
+                "clear {itemType}"
+              ]
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "clear the {itemType}",
+            "clear {itemType}",
+            "clear the {itemType} date",
+            "clear {itemType} for {vehicle}",
+            "clear the {itemType} for {vehicle}",
+            "reset the {itemType}",
+            "remove the {itemType} date",
+            "delete the {itemType} date"
+          ]
+        },
+        {
+          "name": "DeleteIntent",
+          "slots": [
+            {
+              "name": "itemType",
+              "type": "ITEM_TYPE"
+            },
+            {
+              "name": "vehicle",
+              "type": "VEHICLE_NAME"
+            }
+          ],
+          "samples": [
+            "delete the {itemType}",
+            "delete {itemType}",
+            "delete all dates",
+            "wipe the {itemType}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "SERVICE_INTERVAL",
+          "values": [
+            {
+              "name": {
+                "value": "6 months",
+                "synonyms": [
+                  "six months",
+                  "every 6 months",
+                  "every six months",
+                  "half a year"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "12 months",
+                "synonyms": [
+                  "twelve months",
+                  "every 12 months",
+                  "every twelve months",
+                  "a year",
+                  "one year",
+                  "annually",
+                  "yearly"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "3 months",
+                "synonyms": [
+                  "three months",
+                  "every 3 months",
+                  "every three months",
+                  "quarterly"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "24 months",
+                "synonyms": [
+                  "twenty four months",
+                  "two years",
+                  "every two years"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ITEM_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "rego",
+                "synonyms": [
+                  "registration",
+                  "the rego",
+                  "rego date",
+                  "registration date"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "WOF",
+                "synonyms": [
+                  "warrant",
+                  "warrant of fitness",
+                  "the WOF",
+                  "WOF date",
+                  "wof"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "service",
+                "synonyms": [
+                  "servicing",
+                  "service date",
+                  "next service",
+                  "the service"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "all",
+                "synonyms": [
+                  "everything",
+                  "all dates",
+                  "everything for the car"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "VEHICLE_NAME",
+          "values": [
+            {
+              "name": {
+                "value": "the car",
+                "synonyms": [
+                  "car",
+                  "my car",
+                  "the vehicle"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "the ute",
+                "synonyms": [
+                  "ute",
+                  "my ute"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "the van",
+                "synonyms": [
+                  "van",
+                  "my van"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "the truck",
+                "synonyms": [
+                  "truck",
+                  "my truck"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "the hatch",
+                "synonyms": [
+                  "hatch",
+                  "hatchback"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "the SUV",
+                "synonyms": [
+                  "SUV",
+                  "suv"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "ABC123",
+                "synonyms": [
+                  "A B C one two three"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "XYZ987",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "family car",
+                "synonyms": [
+                  "the family car"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "work car",
+                "synonyms": [
+                  "the work car",
+                  "company car"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "SetRegoIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.SetRego.date"
+              }
+            }
+          ]
+        },
+        {
+          "name": "SetWofIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "date",
+              "type": "AMAZON.DATE",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.SetWof.date"
+              }
+            }
+          ]
+        },
+        {
+          "name": "ClearIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "itemType",
+              "type": "ITEM_TYPE",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.Clear.itemType"
+              }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "SKILL_RESPONSE"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.SetRego.date",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "When does the rego expire?"
+          },
+          {
+            "type": "PlainText",
+            "value": "What's the rego expiry date?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.SetWof.date",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "When is the WOF due?"
+          },
+          {
+            "type": "PlainText",
+            "value": "What's the warrant expiry date?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.Clear.itemType",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "What should I clear \u2014 rego, WOF, service, or all?"
+          }
+        ]
+      }
+    ]
+  }
+}
