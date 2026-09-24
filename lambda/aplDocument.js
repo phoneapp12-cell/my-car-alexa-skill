@@ -206,7 +206,7 @@ function buildDashboardData(items, vehicleLabel, timezoneToday) {
   });
 
   return {
-    title: 'My Car',
+    title: 'Car Due Dates',
     subtitle: vehicleLabel ? String(vehicleLabel) : 'Dashboard',
     footer: `Today ${timezoneToday || ''} · Green >30 days · Amber ≤30 · Red overdue`,
     cards,

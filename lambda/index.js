@@ -54,7 +54,7 @@ const LaunchRequestHandler = {
     const items = util.collectDueItems(attrs, timezone);
     const speech = items.length
       ? util.summariseItems(items, 'Welcome back. Here\'s what\'s due next.')
-      : 'Welcome to My Car. Nothing is set yet. You can say, set the rego expiry to the fifteenth of March, or set the WOF due date to June.';
+      : 'Welcome to Car Due Dates. Nothing is set yet. You can say, set the rego expiry to the fifteenth of March, or set the WOF due date to June.';
     const reprompt = 'You can set a rego or WOF date, record a service, or ask what\'s coming up.';
     return withAplIfSupported(handlerInput, speech, reprompt, items, attrs.defaultVehicle, timezone);
   },

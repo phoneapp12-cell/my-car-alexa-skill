@@ -35,7 +35,7 @@ Recommended hosting region for English (AU): **US West (Oregon)** / Far East (as
 4. Click **Save Model**.
 5. Click **Build Model** and wait until it succeeds.
 
-Confirm **Invocation Name** is `my car` (Build → Invocation).
+Confirm **Invocation Name** is `car due dates` (Build → Invocation).
 
 ### 3. Enable APL
 
@@ -75,7 +75,7 @@ If you want APL viewport metadata / publishing text from this repo:
 1. Open the **Test** tab.
 2. Set the skill stage to **Development** (dropdown at the top).
 3. Try typed/voice phrases, for example:
-   - `open my car`
+   - `open car due dates`
    - `set the WOF due date to the first of June twenty twenty seven`
    - `when's the WOF due`
    - `set the rego expiry to the fifteenth of March twenty twenty seven`
@@ -91,7 +91,7 @@ If you want APL viewport metadata / publishing text from this repo:
 4. When the skill asks for **Reminders**, allow permission (or enable Reminders under the skill’s **Permissions** in the app).
 5. On the Echo Show 15 (language English / Australia if available), say:
 
-   **“Alexa, open my car”**
+   **“Alexa, open car due dates”**
 
 You should hear a summary and see the dashboard cards on the screen.
 
@@ -140,7 +140,7 @@ Private Git repos are **not** supported for this Import flow.
 
 | You say | Skill does |
 |--------|------------|
-| “Alexa, open my car” | Launch summary of what’s due next |
+| “Alexa, open car due dates” | Launch summary of what’s due next |
 | “Set the rego expiry to the fifteenth of March” | Saves rego; offers a 2-week reminder |
 | “Set the WOF due date to June” | Saves WOF (month-only → end of month); offers reminder |
 | “Record a service today at forty five thousand kilometres, next service every six months” | Logs service + next due |
