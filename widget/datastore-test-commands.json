@@ -1,0 +1,52 @@
+[
+  {
+    "type": "PUT_OBJECT",
+    "namespace": "carDueDates",
+    "key": "dashboard",
+    "content": {
+      "updatedText": "Sample data from authoring tool",
+      "sarah": {
+        "rego": {
+          "dateText": "15 Mar 2027",
+          "dueDay": 20892
+        },
+        "wof": {
+          "dateText": "1 Jun 2027",
+          "dueDay": 20970
+        },
+        "service": {
+          "dateText": null,
+          "dueDay": null
+        }
+      },
+      "shane": {
+        "rego": {
+          "dateText": "10 Oct 2026",
+          "dueDay": 20736
+        },
+        "wof": {
+          "dateText": "1 Sep 2026",
+          "dueDay": 20697
+        },
+        "service": {
+          "dateText": "24 Mar 2027",
+          "dueDay": 20901
+        }
+      },
+      "cass": {
+        "rego": {
+          "dateText": "31 Mar 2027",
+          "dueDay": 20908
+        },
+        "wof": {
+          "dateText": null,
+          "dueDay": null
+        },
+        "service": {
+          "dateText": null,
+          "dueDay": null
+        }
+      }
+    }
+  }
+]

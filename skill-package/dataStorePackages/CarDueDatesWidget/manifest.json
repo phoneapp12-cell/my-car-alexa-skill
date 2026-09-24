@@ -1,0 +1,40 @@
+{
+  "packageVersion": "1.0",
+  "packageType": "APL_PACKAGE",
+  "publishingInformation": {
+    "schemaVersion": "1.0",
+    "locales": {
+      "en-AU": [
+        {
+          "targetViewport": "WIDGET_M",
+          "metadata": {
+            "name": "Car Due Dates",
+            "description": "Rego, WOF and service due dates for Sarah's, Shane's and Cass's cars.",
+            "keywords": [
+              "car",
+              "rego",
+              "WOF",
+              "service"
+            ],
+            "iconUri": "https://d3ozx4qyxcxwzd.cloudfront.net/default_icon.png",
+            "previews": [
+              "https://d3ozx4qyxcxwzd.cloudfront.net/default_preview.png"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "manifest": {
+    "id": "CarDueDatesWidget",
+    "version": "1.0.0",
+    "installStateChanges": "INFORM",
+    "updateStateChanges": "INFORM",
+    "presentationDefinitions": [
+      {
+        "url": "presentations/default.tpl"
+      }
+    ],
+    "appliesTo": "${viewport.mode == 'HUB'}"
+  }
+}

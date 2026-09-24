@@ -1,0 +1,13 @@
+{
+  "widgetDefaults": {
+    "title": "Car Due Dates",
+    "emptyHint": "No dates yet. Say \"Alexa, open car due dates\".",
+    "notSetText": "Not set",
+    "footer": "Tap to open",
+    "cars": {
+      "sarah": "Sarah's car",
+      "shane": "Shane's car",
+      "cass": "Cass's car"
+    }
+  }
+}

@@ -11,7 +11,9 @@ Alexa-hosted (Node.js) skill for Shane Jenkins to track **rego**, **WOF**, and *
 ```text
 lambda/           Skill code (ask-sdk-core + S3 persistence)
 skill-package/    skill.json + interactionModels/custom/en-AU.json
-tests/            Local handler tests (in-memory persistence)
+tests/            Local handler + widget tests (in-memory persistence, mocked HTTP)
+widget/           Widget files to paste into the authoring tool (+ build-widget.js generator)
+skill-package/dataStorePackages/CarDueDatesWidget/  APL package (skill-package layout)
 DEPLOY.md         Step-by-step Developer Console deploy
 ```
 
@@ -25,6 +27,12 @@ DEPLOY.md         Step-by-step Developer Console deploy
 - “Record a service on Shane's car today at forty five thousand kilometres”
 - “What's coming up”
 - “Clear the rego on Shane's car”
+
+## Echo Show 15 widget
+
+`CarDueDatesWidget` shows the three cars × Rego/WOF/Service with days left and a green/amber/red status. The skill pushes updates to the on-device data store (namespace `carDueDates`, key `dashboard`) through the Data Store REST API. Credentials go in `lambda/config.js`, which is created in the console and never committed (see `lambda/config.example.js`). Setup steps are in DEPLOY.md under "Add the widget to your Echo Show 15".
+
+Regenerate widget files after editing the generator: `node widget/build-widget.js`
 
 ## Local checks
 

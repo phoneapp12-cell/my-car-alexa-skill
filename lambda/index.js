@@ -4,6 +4,7 @@ const Alexa = require('ask-sdk-core');
 const { S3PersistenceAdapter } = require('ask-sdk-s3-persistence-adapter');
 const util = require('./util');
 const apl = require('./aplDocument');
+const widget = require('./widgetData');
 
 const REMINDER_PERMISSION = 'alexa::alerts:reminders:skill:readwrite';
 
@@ -22,6 +23,34 @@ async function loadAttrs(handlerInput) {
 async function saveAttrs(handlerInput, attrs) {
   handlerInput.attributesManager.setPersistentAttributes(attrs);
   await handlerInput.attributesManager.savePersistentAttributes();
+}
+
+/**
+ * Note widget install state from request context (Alexa.DataStore.PackageManager.installedPackages).
+ */
+function noteInstalledPackages(handlerInput, attrs) {
+  const ctx = handlerInput.requestEnvelope.context || {};
+  const pm = ctx['Alexa.DataStore.PackageManager'];
+  const pkgs = (pm && pm.installedPackages) || [];
+  if (pkgs.some((p) => p.packageId === widget.PACKAGE_ID)) {
+    attrs.widget = Object.assign({}, attrs.widget, { installed: true });
+  }
+}
+
+/** Push dashboard to the widget; never throws, never blocks the voice response on failure. */
+async function refreshWidget(handlerInput, attrs, timezone, options) {
+  try {
+    noteInstalledPackages(handlerInput, attrs);
+    return await widget.pushDashboard(handlerInput.requestEnvelope, attrs, timezone, options);
+  } catch (e) {
+    console.log(`[widget] refresh error ignored: ${e && e.message}`);
+    return { pushed: false, reason: 'error' };
+  }
+}
+
+async function saveAndRefreshWidget(handlerInput, attrs, timezone) {
+  await saveAttrs(handlerInput, attrs);
+  await refreshWidget(handlerInput, attrs, timezone);
 }
 
 function getSlots(handlerInput) {
@@ -58,7 +87,12 @@ function requireVehicle(handlerInput, attrs, slots) {
 
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
-    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    const env = handlerInput.requestEnvelope;
+    if (Alexa.getRequestType(env) === 'LaunchRequest') return true;
+    // Widget tap: SendEvent with interactionMode STANDARD -> open the full skill
+    const req = env.request;
+    return req.type === 'Alexa.Presentation.APL.UserEvent' &&
+      Array.isArray(req.arguments) && req.arguments[0] === 'openSkill';
   },
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
@@ -68,7 +102,92 @@ const LaunchRequestHandler = {
       ? util.summariseItems(items, 'Welcome back. Here\'s what\'s due next across all three cars.')
       : 'Welcome to Car Due Dates. Nothing is set yet for Sarah\'s, Shane\'s, or Cass\'s car. Say, for example, set the WOF on Sarah\'s car to June.';
     const reprompt = 'You can set a date on a named car, or ask what\'s coming up.';
+    await refreshWidget(handlerInput, attrs, timezone);
     return withAplIfSupported(handlerInput, speech, reprompt, attrs, timezone);
+  },
+};
+
+/* ---------- Widget lifecycle (Alexa.DataStore.PackageManager / Alexa.DataStore) ---------- */
+
+const WidgetInstalledHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Alexa.DataStore.PackageManager.UsagesInstalled';
+  },
+  async handle(handlerInput) {
+    const env = handlerInput.requestEnvelope;
+    const payload = env.request.payload || {};
+    const timezone = util.DEFAULT_TIMEZONE; // no device settings call outside a session
+    try {
+      const attrs = await loadAttrs(handlerInput);
+      attrs.widget = {
+        installed: true,
+        packageId: payload.packageId || widget.PACKAGE_ID,
+        packageVersion: payload.packageVersion || null,
+        userId: env.context.System.user.userId,
+        apiEndpoint: env.context.System.apiEndpoint || null,
+        installedAt: new Date().toISOString(),
+      };
+      await saveAttrs(handlerInput, attrs);
+      await refreshWidget(handlerInput, attrs, timezone, { force: true, retryOnInvalidDevice: true });
+    } catch (e) {
+      console.log(`[widget] UsagesInstalled handling error ignored: ${e && e.message}`);
+    }
+    return handlerInput.responseBuilder.getResponse();
+  },
+};
+
+const WidgetRemovedHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Alexa.DataStore.PackageManager.UsagesRemoved';
+  },
+  async handle(handlerInput) {
+    try {
+      const attrs = await loadAttrs(handlerInput);
+      attrs.widget = Object.assign({}, attrs.widget, {
+        installed: false,
+        removedAt: new Date().toISOString(),
+      });
+      await saveAttrs(handlerInput, attrs);
+    } catch (e) {
+      console.log(`[widget] UsagesRemoved handling error ignored: ${e && e.message}`);
+    }
+    return handlerInput.responseBuilder.getResponse();
+  },
+};
+
+const WidgetUpdateRequestHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Alexa.DataStore.PackageManager.UpdateRequest';
+  },
+  async handle(handlerInput) {
+    try {
+      const attrs = await loadAttrs(handlerInput);
+      await refreshWidget(handlerInput, attrs, util.DEFAULT_TIMEZONE, { force: true });
+    } catch (e) {
+      console.log(`[widget] UpdateRequest handling error ignored: ${e && e.message}`);
+    }
+    return handlerInput.responseBuilder.getResponse();
+  },
+};
+
+const WidgetInstallationErrorHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Alexa.DataStore.PackageManager.InstallationError';
+  },
+  handle(handlerInput) {
+    const req = handlerInput.requestEnvelope.request;
+    console.log(`[widget] InstallationError for ${req.packageId} v${req.version}: ${JSON.stringify(req.error || {})}`);
+    return handlerInput.responseBuilder.getResponse();
+  },
+};
+
+const DataStoreErrorHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Alexa.DataStore.Error';
+  },
+  handle(handlerInput) {
+    console.log(`[widget] Alexa.DataStore.Error: ${JSON.stringify(handlerInput.requestEnvelope.request.error || {})}`);
+    return handlerInput.responseBuilder.getResponse();
   },
 };
 
@@ -108,7 +227,7 @@ const SetRegoIntentHandler = {
       daysBefore: 14,
       prompt: true,
     };
-    await saveAttrs(handlerInput, attrs);
+    await saveAndRefreshWidget(handlerInput, attrs, timezone);
 
     const days = util.daysUntil(parsed, timezone);
     const speech =
@@ -160,7 +279,7 @@ const SetWofIntentHandler = {
       daysBefore: 14,
       prompt: true,
     };
-    await saveAttrs(handlerInput, attrs);
+    await saveAndRefreshWidget(handlerInput, attrs, timezone);
 
     const days = util.daysUntil(parsed, timezone);
     const speech =
@@ -234,7 +353,7 @@ const RecordServiceIntentHandler = {
         prompt: true,
       };
       speech += ' Shall I remind you one week before?';
-      await saveAttrs(handlerInput, attrs);
+      await saveAndRefreshWidget(handlerInput, attrs, timezone);
       return withAplIfSupported(
         handlerInput,
         speech,
@@ -250,7 +369,7 @@ const RecordServiceIntentHandler = {
       speech += ' You can also say when the next service is due, for example every six months.';
     }
 
-    await saveAttrs(handlerInput, attrs);
+    await saveAndRefreshWidget(handlerInput, attrs, timezone);
     return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
@@ -318,11 +437,11 @@ const SetNextServiceIntentHandler = {
         prompt: true,
       };
       speech += ' Want a reminder one week before?';
-      await saveAttrs(handlerInput, attrs);
+      await saveAndRefreshWidget(handlerInput, attrs, timezone);
       return withAplIfSupported(handlerInput, speech, 'Would you like a reminder?', attrs, timezone);
     }
 
-    await saveAttrs(handlerInput, attrs);
+    await saveAndRefreshWidget(handlerInput, attrs, timezone);
     return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
@@ -423,7 +542,7 @@ const ClearIntentHandler = {
 
     attrs.vehicles[key] = /all|everything/.test(itemType) ? attrs.vehicles[key] : vehicle;
     attrs.pendingReminder = null;
-    await saveAttrs(handlerInput, attrs);
+    await saveAndRefreshWidget(handlerInput, attrs, timezone);
     return withAplIfSupported(handlerInput, speech, 'Anything else?', attrs, timezone);
   },
 };
@@ -678,6 +797,11 @@ function buildPersistenceAdapter() {
 
 const skillBuilder = Alexa.SkillBuilders.custom()
   .addRequestHandlers(
+    WidgetInstalledHandler,
+    WidgetRemovedHandler,
+    WidgetUpdateRequestHandler,
+    WidgetInstallationErrorHandler,
+    DataStoreErrorHandler,
     LaunchRequestHandler,
     SetRegoIntentHandler,
     SetWofIntentHandler,

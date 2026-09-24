@@ -78,6 +78,26 @@
                 "maxHeight": 480
               }
             ]
+          },
+          {
+            "type": "ALEXA_DATASTORE_PACKAGEMANAGER",
+            "packages": [
+              {
+                "id": "CarDueDatesWidget"
+              }
+            ]
+          },
+          {
+            "type": "ALEXA_DATA_STORE"
+          },
+          {
+            "type": "ALEXA_EXTENSION",
+            "autoInitializedExtensions": [],
+            "requestedExtensions": [
+              {
+                "uri": "alexaext:datastore:10"
+              }
+            ]
           }
         ]
       }

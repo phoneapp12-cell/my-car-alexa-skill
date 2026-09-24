@@ -180,3 +180,86 @@ If you omit the car on a set/record/clear, Alexa asks: “Which car, Sarah's, Sh
 - [ ] Deploy → Test (Development) → device  
 
 Zip of this whole project: `car-tracker-skill.zip` (sibling of this folder).
+
+---
+
+## Add the widget to your Echo Show 15
+
+The widget shows all three cars (Sarah's, Shane's, Cass's) with Rego, WOF and Service: date, days left, and a green / amber / red dot. It updates by itself whenever you change a date by voice. Tapping it opens the skill.
+
+The skill stays in **Development**. You don't need to publish anything.
+
+Steps marked ✅ come straight from Amazon's docs. Steps marked ⚠️ are my best understanding but aren't confirmed.
+
+### A. Turn on the widget interfaces ✅
+
+1. Open your skill in the developer console → **Build** tab → **Interfaces**.
+2. Turn on **Data Store Packages**.
+3. Turn on **Data Store**.
+4. Under **Alexa Extensions**, make sure **Data Store** is selected.
+5. Leave **Alexa Presentation Language** on.
+6. Click **Save Interfaces**, then **Build Model**.
+
+⚠️ If the Data Store Packages option asks for a package ID, enter `CarDueDatesWidget`.
+
+### B. Copy your skill's Client ID and Client Secret ✅
+
+1. On the **Build** tab, open **Tools → Permissions** in the left menu.
+2. Scroll to the bottom (the *Alexa Skill Messaging* section).
+3. Copy **Alexa Client Id**.
+4. Click **SHOW** and copy **Alexa Client Secret**.
+
+Keep these private. Never paste them into GitHub.
+
+### C. Update the code and add `config.js` (Code tab)
+
+Alexa-hosted skills have no screen for Lambda environment variables, so the credentials go in a small file that exists only in your console, not in GitHub.
+
+1. Open the **Code** tab.
+2. Replace `lambda/index.js` with the new `lambda/index.js` from this project.
+3. Add a new file, `lambda/widgetData.js`, and paste in this project's `lambda/widgetData.js`. ⚠️ Use the new-file icon above the file tree.
+4. Add a new file, `lambda/config.js`. Paste in the contents of `lambda/config.example.js`, then replace the two `REPLACE_ME` values with the Client ID and Client Secret from step B.
+5. Click **Save**, then **Deploy**.
+
+Leave `util.js`, `aplDocument.js` and `package.json` as they are. No new npm packages are needed.
+
+### D. Create the widget in the widget authoring tool ✅
+
+1. On the **Build** tab, click **Multimodal Responses** in the left menu, then **Widget**.
+2. Click **Create Widget**, then **Blank Document**.
+   - Or click **Upload** and choose `widget/widget-upload.json`. That file holds both the document and the data.
+3. In the **APL** pane, replace everything with `widget/document.json`.
+4. In the **DATA** pane, replace everything with `widget/data.json`.
+5. Click **Save** and name the widget exactly **`CarDueDatesWidget`**. Amazon uses this name as the widget ID, and it has to match the skill code.
+6. In the toolbar, click **Manifest**. Replace the JSON with `widget/manifest.json`, then save. This sets the gallery name to "Car Due Dates" and tells Alexa to notify the skill on install (`installStateChanges: INFORM`).
+7. Go back to the **Build** tab and click **Build Model** again. Amazon says to rebuild after every widget change, or the install may fail or send an old version.
+
+The preview in the tool has no data store connection, so it shows "Not set" and the "No dates yet" hint. That's expected.
+
+### E. Install it on the Echo Show 15 ✅
+
+1. In the widget authoring tool, click **Install** at the bottom of the page.
+2. Pick your Echo Show 15 from the device menu.
+3. Click **Send to Device**.
+4. Wait a few minutes. Look for **Car Due Dates** in the Widget Panel. If it isn't there, open the Widget Gallery (on the Echo Show 15, swipe down from the top edge of the screen) and tap **+** on Car Due Dates.
+
+### F. Fill it with your data
+
+- Installing sends the skill a message and the skill pushes your dates straight away. If the widget still says "No dates yet", say **"Alexa, open car due dates"**. Every launch, and every set, record or clear, pushes fresh data.
+- Optional display test: in the authoring tool, click **Install → Update Datastore**, paste in `widget/datastore-test-commands.json`, then click **Send to Datastore**. This shows sample dates. Your real data replaces them the next time you use the skill.
+
+### Widget troubleshooting
+
+- **Widget stays empty after using the skill.** Check that `lambda/config.js` has the right ID and secret and that you clicked **Deploy**. Open the Code tab's CloudWatch logs and look for lines that start with `[widget]`.
+  - `not configured` means `config.js` is missing or still has `REPLACE_ME`.
+  - `LWA token request failed` means the ID or secret is wrong.
+  - `INVALID_DEVICE` means Alexa doesn't think the widget is installed on that device. Reinstall it (step E), then use the skill again.
+- **Voice still works when a push fails.** Widget errors are logged and ignored.
+
+### Not confirmed ⚠️
+
+- **New Zealand devices:** I couldn't confirm that installing a widget from a development-stage skill works on a NZ-registered Echo Show 15. The skill is English (AU) and uses the Far East data store endpoint (`https://api.fe.amazonalexa.com`).
+- **Device language:** the widget's gallery listing is English (AU). If the Echo is set to another language, the widget may not appear.
+- **Pushes from a development skill:** one public developer report says they got `INVALID_DEVICE` when pushing from a development skill. If that happens to you, the Update Datastore button still works for testing, but automatic updates may not.
+- **Removal events:** Amazon says the update event (`UpdateRequest`) is only sent for live skills. There are also reports that the removal event (`UsagesRemoved`) doesn't arrive in development.
+- **Days-left counter:** the widget works out days left on the device from the due date and the device clock (`localTime`), so it should tick over each day without the skill. I haven't seen this confirmed on a real device.

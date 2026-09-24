@@ -1,0 +1,578 @@
+{
+  "document": {
+    "type": "APL",
+    "version": "2022.2",
+    "extensions": [
+      {
+        "name": "DataStore",
+        "uri": "alexaext:datastore:10"
+      }
+    ],
+    "settings": {
+      "DataStore": {
+        "dataBindings": [
+          {
+            "namespace": "carDueDates",
+            "key": "dashboard",
+            "dataBindingName": "DS_CarDueDates",
+            "dataType": "OBJECT"
+          }
+        ]
+      }
+    },
+    "resources": [
+      {
+        "dimensions": {
+          "chipSize": "12dp",
+          "chipRadius": "6dp",
+          "gap": "6dp",
+          "titleSize": "20dp",
+          "carNameSize": "17dp",
+          "labelSize": "15dp",
+          "valueSize": "15dp",
+          "daysSize": "14dp",
+          "hintSize": "13dp"
+        }
+      },
+      {
+        "when": "${viewport.width >= 300}",
+        "dimensions": {
+          "chipSize": "16dp",
+          "chipRadius": "8dp",
+          "gap": "8dp",
+          "titleSize": "24dp",
+          "carNameSize": "21dp",
+          "labelSize": "19dp",
+          "valueSize": "19dp",
+          "daysSize": "17dp",
+          "hintSize": "15dp"
+        }
+      }
+    ],
+    "mainTemplate": {
+      "parameters": [
+        "widgetDefaults"
+      ],
+      "items": [
+        {
+          "type": "TouchWrapper",
+          "id": "openSkillTouch",
+          "width": "100vw",
+          "height": "100vh",
+          "onPress": [
+            {
+              "type": "SendEvent",
+              "arguments": [
+                "openSkill"
+              ],
+              "flags": {
+                "interactionMode": "STANDARD"
+              }
+            }
+          ],
+          "item": {
+            "type": "Container",
+            "width": "100%",
+            "height": "100%",
+            "direction": "column",
+            "padding": "@gap",
+            "items": [
+              {
+                "type": "Frame",
+                "position": "absolute",
+                "width": "100%",
+                "height": "100%",
+                "backgroundColor": "#11161C"
+              },
+              {
+                "type": "Text",
+                "text": "${widgetDefaults.title}",
+                "fontSize": "@titleSize",
+                "fontWeight": "700",
+                "color": "#FFFFFF",
+                "maxLines": 1,
+                "paddingBottom": "@gap"
+              },
+              {
+                "type": "Text",
+                "text": "${widgetDefaults.emptyHint}",
+                "display": "${DS_CarDueDates ? 'none' : 'normal'}",
+                "fontSize": "@hintSize",
+                "color": "#B0BEC5",
+                "paddingBottom": "@gap"
+              },
+              {
+                "type": "Container",
+                "width": "100%",
+                "grow": 1,
+                "direction": "column",
+                "paddingBottom": "@gap",
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${widgetDefaults.cars.sarah}",
+                    "fontSize": "@carNameSize",
+                    "fontWeight": "700",
+                    "color": "#90CAF9",
+                    "maxLines": 1
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.sarah.rego.dueDay ? ((DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "Rego",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.sarah.rego.dateText ? DS_CarDueDates.sarah.rego.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.sarah.rego.dueDay ? ((DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.sarah.rego.dueDay ? ((DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.sarah.rego.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.sarah.wof.dueDay ? ((DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "WOF",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.sarah.wof.dateText ? DS_CarDueDates.sarah.wof.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.sarah.wof.dueDay ? ((DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.sarah.wof.dueDay ? ((DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.sarah.wof.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.sarah.service.dueDay ? ((DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "Service",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.sarah.service.dateText ? DS_CarDueDates.sarah.service.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.sarah.service.dueDay ? ((DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.sarah.service.dueDay ? ((DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.sarah.service.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Container",
+                "width": "100%",
+                "grow": 1,
+                "direction": "column",
+                "paddingBottom": "@gap",
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${widgetDefaults.cars.shane}",
+                    "fontSize": "@carNameSize",
+                    "fontWeight": "700",
+                    "color": "#90CAF9",
+                    "maxLines": 1
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.shane.rego.dueDay ? ((DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "Rego",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.shane.rego.dateText ? DS_CarDueDates.shane.rego.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.shane.rego.dueDay ? ((DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.shane.rego.dueDay ? ((DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.shane.rego.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.shane.wof.dueDay ? ((DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "WOF",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.shane.wof.dateText ? DS_CarDueDates.shane.wof.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.shane.wof.dueDay ? ((DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.shane.wof.dueDay ? ((DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.shane.wof.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.shane.service.dueDay ? ((DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "Service",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.shane.service.dateText ? DS_CarDueDates.shane.service.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.shane.service.dueDay ? ((DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.shane.service.dueDay ? ((DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.shane.service.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Container",
+                "width": "100%",
+                "grow": 1,
+                "direction": "column",
+                "paddingBottom": 0,
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${widgetDefaults.cars.cass}",
+                    "fontSize": "@carNameSize",
+                    "fontWeight": "700",
+                    "color": "#90CAF9",
+                    "maxLines": 1
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.cass.rego.dueDay ? ((DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "Rego",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.cass.rego.dateText ? DS_CarDueDates.cass.rego.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.cass.rego.dueDay ? ((DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.cass.rego.dueDay ? ((DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.cass.rego.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.cass.wof.dueDay ? ((DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "WOF",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.cass.wof.dateText ? DS_CarDueDates.cass.wof.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.cass.wof.dueDay ? ((DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.cass.wof.dueDay ? ((DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.cass.wof.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Container",
+                    "width": "100%",
+                    "grow": 1,
+                    "direction": "row",
+                    "alignItems": "center",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "@chipSize",
+                        "height": "@chipSize",
+                        "borderRadius": "@chipRadius",
+                        "backgroundColor": "${DS_CarDueDates.cass.service.dueDay ? ((DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "Service",
+                        "width": "24%",
+                        "paddingLeft": "@gap",
+                        "fontSize": "@labelSize",
+                        "fontWeight": "700",
+                        "color": "#FFFFFF",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.cass.service.dateText ? DS_CarDueDates.cass.service.dateText : widgetDefaults.notSetText}",
+                        "grow": 1,
+                        "shrink": 1,
+                        "fontSize": "@valueSize",
+                        "color": "#ECEFF1",
+                        "maxLines": 1
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${DS_CarDueDates.cass.service.dueDay ? ((DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? 'Overdue ' + (0 - (DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000))) + 'd' : ((DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) == 0 ? 'Due today' : (DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) + 'd left')) : ''}",
+                        "fontSize": "@daysSize",
+                        "fontWeight": "700",
+                        "color": "${DS_CarDueDates.cass.service.dueDay ? ((DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) < 0 ? '#D32F2F' : ((DS_CarDueDates.cass.service.dueDay - Math.floor(localTime / 86400000)) <= 30 ? '#F9A825' : '#2E7D32')) : '#546E7A'}",
+                        "textAlign": "right",
+                        "maxLines": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Text",
+                "text": "${DS_CarDueDates.updatedText ? DS_CarDueDates.updatedText : widgetDefaults.footer}",
+                "fontSize": "@hintSize",
+                "color": "#78909C",
+                "maxLines": 1,
+                "paddingTop": "@gap"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "datasources": {
+    "widgetDefaults": {
+      "title": "Car Due Dates",
+      "emptyHint": "No dates yet. Say \"Alexa, open car due dates\".",
+      "notSetText": "Not set",
+      "footer": "Tap to open",
+      "cars": {
+        "sarah": "Sarah's car",
+        "shane": "Shane's car",
+        "cass": "Cass's car"
+      }
+    }
+  }
+}
