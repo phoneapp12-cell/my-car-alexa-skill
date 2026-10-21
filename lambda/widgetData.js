@@ -160,8 +160,12 @@ function buildWidgetContent(attrs, timezone) {
     const v = attrs.vehicles[id] || {};
     content[id] = {
       rego: cell(v.regoExpiry),
-      wof: cell(v.wofExpiry),
-      service: cell(v.nextService && v.nextService.date),
+      wof: v.wofInProgress && v.wofInProgress.recheck
+        ? { dateText: `Recheck ${shortDate(v.wofInProgress.recheck)}`, dueDay: dueDay(v.wofInProgress.recheck) }
+        : cell(v.wofExpiry),
+      service: v.nextService && !v.nextService.date && v.nextService.odometerKm
+        ? { dateText: `${Number(v.nextService.odometerKm).toLocaleString('en-NZ')} km`, dueDay: null } // B6
+        : cell(v.nextService && v.nextService.date),
     };
   }
   let stamp = '';

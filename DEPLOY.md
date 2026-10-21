@@ -19,7 +19,7 @@ This sets up the whole skill and the Echo Show 15 widget in 5 steps. Stay signed
 2. **Add your two keys.**
    - In the new skill, go to **Build → Tools → Permissions** and scroll to the bottom. Copy **Alexa Client Id**, then click **SHOW** and copy **Alexa Client Secret**.
    - While you're on this page, check that **Reminders** is switched on.
-   - Open the **Code** tab, then the file **lambda/config.js**. Replace the two `REPLACE_ME` values with your ID and secret, keeping the quote marks.
+   - Open the **Code** tab, then the file **lambda/config.js** (if it isn't there, create it and paste in `lambda/config.example.js`). Replace the `REPLACE_ME` values with your ID and secret, keeping the quote marks.
    - Click **Save**, then **Deploy**.
 
 3. **Build.**
@@ -264,7 +264,7 @@ Alexa-hosted skills have no screen for Lambda environment variables, so the cred
 1. Open the **Code** tab.
 2. Replace `lambda/index.js` with the new `lambda/index.js` from this project.
 3. Add a new file, `lambda/widgetData.js`, and paste in this project's `lambda/widgetData.js`. ⚠️ Use the new-file icon above the file tree.
-4. Open `lambda/config.js`, or add it and paste in this project's `lambda/config.js` if it's missing. Replace the two `REPLACE_ME` values with the Client ID and Client Secret from step B.
+4. Open `lambda/config.js`, or add it and paste in this project's `lambda/config.example.js` if it's missing (config.js is never in GitHub). Replace the two `REPLACE_ME` values with the Client ID and Client Secret from step B.
 5. Click **Save**, then **Deploy**.
 
 Leave `util.js`, `aplDocument.js` and `package.json` as they are. No new npm packages are needed.
@@ -309,3 +309,12 @@ The preview in the tool has no data store connection, so it shows "Not set" and 
 - **Pushes from a development skill:** one public developer report says they got `INVALID_DEVICE` when pushing from a development skill. If that happens to you, the Update Datastore button still works for testing, but automatic updates may not.
 - **Removal events:** Amazon says the update event (`UpdateRequest`) is only sent for live skills. There are also reports that the removal event (`UsagesRemoved`) doesn't arrive in development.
 - **Days-left counter:** the widget works out days left on the device from the due date and the device clock (`localTime`), so it should tick over each day without the skill. I haven't seen this confirmed on a real device.
+
+## My App car dates (E1)
+
+The skill can read the Cars tab from My App, so dates are entered once.
+1. In My App: Settings › Alexa › turn on **Share car dates with Alexa**.
+2. In the developer console Code tab, open `lambda/config.js` and paste with the two Copy buttons:
+   `RELAY_CARS_URL: '…/cars/alexa'` and `RELAY_CARS_KEY: '…'`. Save, then Deploy.
+3. Say "Alexa, open car due dates". It now reads My App's dates (S3 is only a backup if the relay can't be reached in about 2 seconds).
+Voice "set" and "clear" still work, but My App's dates replace them on the next refresh.

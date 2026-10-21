@@ -5,6 +5,7 @@ const { S3PersistenceAdapter } = require('ask-sdk-s3-persistence-adapter');
 const util = require('./util');
 const apl = require('./aplDocument');
 const widget = require('./widgetData');
+const relayCars = require('./relayCars');
 
 const REMINDER_PERMISSION = 'alexa::alerts:reminders:skill:readwrite';
 
@@ -15,9 +16,18 @@ const HELP_TEXT =
   'Ask: what\'s coming up, when\'s the WOF due, or when\'s the rego due on Cass\'s car. ' +
   'You can clear the rego, WOF, or service on a named car.';
 
-async function loadAttrs(handlerInput) {
-  const attrs = (await handlerInput.attributesManager.getPersistentAttributes()) || {};
-  return util.ensurePersistenceShape(attrs);
+const voiceWrites = new WeakSet(); // attrs changed by a voice set/clear this request (not saved to S3)
+
+/** opts.sync: read My App's car dates from the relay first (under ~2 s); S3 stays the fallback cache. */
+async function loadAttrs(handlerInput, opts) {
+  const attrs = util.ensurePersistenceShape((await handlerInput.attributesManager.getPersistentAttributes()) || {});
+  if (opts && opts.sync) {
+    try {
+      const r = await relayCars.syncInto(attrs);
+      if (r.changed) await saveAttrs(handlerInput, attrs); // refresh the S3 cache
+    } catch (e) { console.log(`[relayCars] ignored: ${e && e.message}`); }
+  }
+  return attrs;
 }
 
 async function saveAttrs(handlerInput, attrs) {
@@ -50,6 +60,7 @@ async function refreshWidget(handlerInput, attrs, timezone, options) {
 
 async function saveAndRefreshWidget(handlerInput, attrs, timezone) {
   await saveAttrs(handlerInput, attrs);
+  if (relayCars.isConfigured()) voiceWrites.add(attrs);
   await refreshWidget(handlerInput, attrs, timezone);
 }
 
@@ -59,6 +70,11 @@ function getSlots(handlerInput) {
 }
 
 async function withAplIfSupported(handlerInput, speech, reprompt, attrs, timezone) {
+  if (attrs && voiceWrites.has(attrs)) { // voice changes are kept in S3 but My App's dates win on the next refresh
+    voiceWrites.delete(attrs);
+    const note = relayCars.VOICE_WRITE_NOTE.trim(), q = /\?\s*$/.test(speech) ? speech.lastIndexOf('. ') : -1;
+    speech = q > 0 ? `${speech.slice(0, q + 1)} ${note} ${speech.slice(q + 2)}` : `${speech} ${note}`;
+  }
   const rb = handlerInput.responseBuilder.speak(speech);
   if (reprompt) rb.reprompt(reprompt);
   if (util.supportsApl(handlerInput)) {
@@ -96,7 +112,7 @@ const LaunchRequestHandler = {
   },
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
-    const attrs = await loadAttrs(handlerInput);
+    const attrs = await loadAttrs(handlerInput, { sync: true });
     const items = util.collectDueItems(attrs, timezone);
     const speech = items.length
       ? util.summariseItems(items, 'Welcome back. Here\'s what\'s due next across all three cars.')
@@ -118,7 +134,7 @@ const WidgetInstalledHandler = {
     const payload = env.request.payload || {};
     const timezone = util.DEFAULT_TIMEZONE; // no device settings call outside a session
     try {
-      const attrs = await loadAttrs(handlerInput);
+      const attrs = await loadAttrs(handlerInput, { sync: true });
       attrs.widget = {
         installed: true,
         packageId: payload.packageId || widget.PACKAGE_ID,
@@ -161,7 +177,7 @@ const WidgetUpdateRequestHandler = {
   },
   async handle(handlerInput) {
     try {
-      const attrs = await loadAttrs(handlerInput);
+      const attrs = await loadAttrs(handlerInput, { sync: true });
       await refreshWidget(handlerInput, attrs, util.DEFAULT_TIMEZONE, { force: true });
     } catch (e) {
       console.log(`[widget] UpdateRequest handling error ignored: ${e && e.message}`);
@@ -457,7 +473,7 @@ const StatusIntentHandler = {
   },
   async handle(handlerInput) {
     const timezone = await util.getTimezone(handlerInput);
-    const attrs = await loadAttrs(handlerInput);
+    const attrs = await loadAttrs(handlerInput, { sync: true });
     const slots = getSlots(handlerInput);
     const intent = Alexa.getIntentName(handlerInput.requestEnvelope);
     const vehicleId = util.resolveVehicleId(slots);

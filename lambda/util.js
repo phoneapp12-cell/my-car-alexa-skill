@@ -365,7 +365,18 @@ function collectDueItems(attrs, timezone, vehicleKey, typeFilter) {
         spoken: `${label} rego is due on ${speakDate(v.regoExpiry)}, ${speakDaysRemaining(days)}`,
       });
     }
-    if ((!typeFilter || typeFilter === 'wof') && v.wofExpiry) {
+    const wip = v.wofInProgress && (v.wofInProgress.recheck || v.wofInProgress.fixesTotal) ? v.wofInProgress : null;
+    if ((!typeFilter || typeFilter === 'wof') && wip) { // E1 / G10: WOF in progress (failed, being fixed, recheck due)
+      const rd = wip.recheck || v.wofExpiry || null;
+      const days = rd ? daysUntil(rd, timezone) : null;
+      const fx = wip.fixesTotal ? `${wip.fixesDone} of ${wip.fixesTotal} fixes done` : '';
+      items.push({
+        type: 'wof', label: 'WOF', vehicleKey: key, vehicle: label, date: rd, days,
+        colour: days !== null && days < 0 ? STATUS.RED : STATUS.AMBER,
+        inProgress: true, fixesDone: wip.fixesDone || 0, fixesTotal: wip.fixesTotal || 0,
+        spoken: `${label} WOF is in progress${fx ? ', ' + fx : ''}${wip.recheck ? `, recheck by ${speakDate(wip.recheck)}, ${speakDaysRemaining(days)}` : ''}`,
+      });
+    } else if ((!typeFilter || typeFilter === 'wof') && v.wofExpiry) {
       const days = daysUntil(v.wofExpiry, timezone);
       items.push({
         type: 'wof',
@@ -376,6 +387,16 @@ function collectDueItems(attrs, timezone, vehicleKey, typeFilter) {
         days,
         colour: statusColour(days),
         spoken: `${label} WOF is due on ${speakDate(v.wofExpiry)}, ${speakDaysRemaining(days)}`,
+      });
+    }
+    if ((!typeFilter || typeFilter === 'service') && v.nextService && !v.nextService.date && v.nextService.odometerKm) { // B6: km-only service
+      const kmTxt = Number(v.nextService.odometerKm).toLocaleString('en-NZ');
+      const left = v.odometerKm ? v.nextService.odometerKm - v.odometerKm : null;
+      items.push({
+        type: 'service', label: 'Service', vehicleKey: key, vehicle: label, date: null, days: null,
+        colour: left !== null && left < 0 ? STATUS.RED : left !== null && left <= 1000 ? STATUS.AMBER : STATUS.GREEN,
+        km: v.nextService.odometerKm, kmText: `${kmTxt} km`,
+        spoken: `${label} service is due at ${v.nextService.odometerKm} kilometres` + (left !== null ? (left >= 0 ? `, about ${left} kilometres to go` : `, ${-left} kilometres overdue`) : ''),
       });
     }
     if ((!typeFilter || typeFilter === 'service') && v.nextService && v.nextService.date) {

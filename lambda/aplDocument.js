@@ -183,6 +183,14 @@ function rowFromItem(typeLabel, item) {
     };
   }
   const c = COLOURS[item.colour] || COLOURS.amber;
+  if (item.inProgress) { // E1 / G10: amber "WOF in progress" with fixes and recheck
+    return { label: typeLabel, badge: 'In progress', bg: c.bg, accent: c.accent,
+      dateText: item.date ? `Recheck ${formatShortDate(item.date)}` : 'Recheck date not set',
+      daysText: item.fixesTotal ? `${item.fixesDone}/${item.fixesTotal} fixes done` : (item.days === null ? '—' : item.days < 0 ? `Overdue ${Math.abs(item.days)}d` : `${item.days} days left`) };
+  }
+  if (!item.date && item.kmText) { // B6: service by km only
+    return { label: typeLabel, badge: c.label, bg: c.bg, accent: c.accent, dateText: `At ${item.kmText}`, daysText: 'By km' };
+  }
   let daysText;
   if (item.days < 0) {
     daysText = `Overdue ${Math.abs(item.days)}d`;
